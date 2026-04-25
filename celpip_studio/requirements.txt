@@ -1,0 +1,11 @@
+flask
+pillow
+numpy
+scipy
+pydub
+edge-tts
+kokoro-onnx
+soundfile
+huggingface_hub
+fonttools
+fpdf2

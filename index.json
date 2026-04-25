@@ -1,0 +1,43 @@
+[
+  {
+    "name": "celpip_studio",
+    "folder": "celpip_studio",
+    "files": [],
+    "subfolders": [
+      {
+        "name": "templates",
+        "folder": "templates",
+        "files": [
+          {
+            "name": "base",
+            "html": "celpip_studio/templates/base.html"
+          },
+          {
+            "name": "dashboard",
+            "html": "celpip_studio/templates/dashboard.html"
+          },
+          {
+            "name": "margin_tuner",
+            "html": "celpip_studio/templates/margin_tuner.html"
+          },
+          {
+            "name": "patterns",
+            "html": "celpip_studio/templates/patterns.html"
+          },
+          {
+            "name": "shadowing",
+            "html": "celpip_studio/templates/shadowing.html"
+          },
+          {
+            "name": "template_library",
+            "html": "celpip_studio/templates/template_library.html"
+          },
+          {
+            "name": "video_preview",
+            "html": "celpip_studio/templates/video_preview.html"
+          }
+        ]
+      }
+    ]
+  }
+]

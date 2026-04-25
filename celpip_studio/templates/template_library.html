@@ -1,0 +1,604 @@
+{% extends "base.html" %}
+{% block title %}Template Library — CELPIP Studio{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/browse.css') }}">
+<style>
+/* ── Template Library layout ─────────────────────────────────────────────── */
+.tl-wrap        { max-width: 1400px; margin: 0 auto; padding: 24px 20px; }
+
+/* Stats bar */
+.tl-stats       { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+.tl-stat        { background: #1a1a2e; border: 1px solid #2a2a4a; border-radius: 10px;
+                  padding: 14px 20px; min-width: 120px; text-align: center; flex: 1; }
+.tl-stat-val    { font-size: 2rem; font-weight: 700; color: #8b5cf6; }
+.tl-stat-lbl    { font-size: 0.72rem; color: #888; text-transform: uppercase;
+                  letter-spacing: .06em; margin-top: 4px; }
+
+/* Filter bar */
+.tl-filters     { background: #12121e; border: 1px solid #222240; border-radius: 12px;
+                  padding: 16px 20px; margin-bottom: 16px; }
+.tl-filter-row  { display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+                  margin-bottom: 10px; }
+.tl-filter-row:last-child { margin-bottom: 0; }
+.tl-filter-lbl  { font-size: 0.75rem; color: #888; text-transform: uppercase;
+                  letter-spacing: .06em; min-width: 80px; }
+.tl-pills       { display: flex; gap: 6px; flex-wrap: wrap; }
+.tl-pill        { padding: 4px 12px; border-radius: 20px; border: 1px solid #333;
+                  background: #1a1a2e; color: #aaa; font-size: 0.8rem; cursor: pointer;
+                  transition: all .15s; white-space: nowrap; }
+.tl-pill:hover  { border-color: #666; color: #ddd; }
+.tl-pill.active { background: #8b5cf6; border-color: #8b5cf6; color: #fff; }
+.tl-pill.cat-pill { border-left: 4px solid var(--cat-color, #8b5cf6); }
+.tl-pill.cat-pill.active { background: var(--cat-color, #8b5cf6);
+                            border-color: var(--cat-color, #8b5cf6); }
+
+/* Search + generate bar */
+.tl-toolbar     { display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+                  margin-bottom: 16px; }
+.tl-search      { flex: 1; min-width: 200px; background: #1a1a2e; border: 1px solid #333;
+                  border-radius: 8px; padding: 8px 14px; color: #ddd; font-size: 0.88rem; }
+.tl-search:focus{ outline: none; border-color: #8b5cf6; }
+.tl-count       { font-size: 0.8rem; color: #666; white-space: nowrap; }
+.gen-batch-wrap { display: flex; align-items: center; gap: 8px; background: #1a1a2e;
+                  border: 1px solid #333; border-radius: 8px; padding: 6px 14px; }
+.gen-batch-wrap label { font-size: 0.8rem; color: #aaa; white-space: nowrap; }
+#batchCount     { width: 60px; background: transparent; border: none; color: #fff;
+                  font-size: 1rem; font-weight: 700; text-align: center; }
+#batchSlider    { width: 120px; accent-color: #8b5cf6; }
+.btn-gen-batch  { padding: 8px 18px; background: #8b5cf6; color: #fff; border: none;
+                  border-radius: 8px; font-size: 0.85rem; cursor: pointer; white-space: nowrap; }
+.btn-gen-batch:hover { background: #7c3aed; }
+.btn-gen-batch:disabled { opacity: .5; cursor: default; }
+
+/* Table */
+.tl-table-wrap  { overflow-x: auto; border-radius: 12px; border: 1px solid #222240; }
+table.tl-table  { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+.tl-table thead th { background: #16162a; padding: 10px 12px; text-align: left;
+                      color: #888; font-size: 0.73rem; text-transform: uppercase;
+                      letter-spacing: .06em; border-bottom: 1px solid #222240;
+                      white-space: nowrap; }
+.tl-table tbody tr { border-bottom: 1px solid #1c1c30; }
+.tl-table tbody tr:last-child { border-bottom: none; }
+.tl-table tbody tr:hover { background: rgba(139,92,246,.05); }
+.tl-table td   { padding: 10px 12px; vertical-align: middle; }
+.tl-table td.td-id { color: #8b5cf6; font-family: monospace; font-size: 0.75rem;
+                      white-space: nowrap; }
+.tl-table td.td-cat { white-space: nowrap; }
+.cat-dot        { display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+                  margin-right: 6px; flex-shrink: 0; }
+.tl-table td.td-title { max-width: 240px; }
+.tl-title-text  { white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+                  display: block; max-width: 230px; color: #ddd; }
+.tl-table td.td-freq { white-space: nowrap; }
+.freq-badge     { padding: 2px 8px; border-radius: 10px; font-size: 0.72rem;
+                  font-weight: 600; }
+.freq-high      { background: rgba(239,68,68,.2); color: #ef4444; }
+.freq-med-high  { background: rgba(249,115,22,.2); color: #f97316; }
+.freq-medium    { background: rgba(234,179,8,.2); color: #eab308; }
+.freq-lower     { background: rgba(107,114,128,.2); color: #9ca3af; }
+.status-dot     { display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+                  margin-right: 5px; }
+.sd-generated   { background: #22c55e; }
+.sd-not_generated { background: #374151; }
+.sd-posted      { background: #3b82f6; }
+.sd-not_posted  { background: #374151; }
+
+/* Row actions */
+.td-actions     { white-space: nowrap; }
+.btn-tl         { padding: 4px 10px; border-radius: 6px; border: 1px solid #333;
+                  background: #1a1a2e; color: #ccc; font-size: 0.75rem; cursor: pointer;
+                  transition: all .15s; margin-right: 4px; }
+.btn-tl:hover   { border-color: #8b5cf6; color: #fff; }
+.btn-tl.btn-generate  { border-color: #22c55e; color: #22c55e; }
+.btn-tl.btn-generate:hover { background: #22c55e; color: #000; }
+.btn-tl.btn-regen     { border-color: #f97316; color: #f97316; }
+.btn-tl.btn-regen:hover { background: #f97316; color: #000; }
+.btn-tl.btn-posted    { border-color: #3b82f6; color: #3b82f6; }
+.btn-tl.btn-posted:hover { background: #3b82f6; color: #fff; }
+.btn-tl.btn-unpost    { border-color: #6b7280; color: #6b7280; }
+.btn-tl.btn-unpost:hover { background: #6b7280; color: #fff; }
+.btn-tl.btn-ytinfo    { border-color: #ef4444; color: #ef4444; }
+.btn-tl.btn-ytinfo:hover { background: #ef4444; color: #fff; }
+
+/* Mark-posted modal */
+.mp-overlay     { position: fixed; inset: 0; background: rgba(0,0,0,.75);
+                  display: flex; align-items: center; justify-content: center;
+                  z-index: 1200; }
+.mp-overlay.hidden { display: none; }
+.mp-modal       { background: #1a1a2e; border: 1px solid #333; border-radius: 14px;
+                  padding: 28px; width: 480px; max-width: 95vw; }
+.mp-modal h3    { margin: 0 0 18px; color: #ddd; font-size: 1.1rem; }
+.mp-modal label { display: block; font-size: 0.8rem; color: #888; margin-bottom: 4px; }
+.mp-modal input { width: 100%; background: #12121e; border: 1px solid #333;
+                  border-radius: 6px; padding: 8px 12px; color: #ddd;
+                  font-size: 0.88rem; margin-bottom: 14px; }
+.mp-modal input:focus { outline: none; border-color: #3b82f6; }
+.mp-actions     { display: flex; gap: 10px; justify-content: flex-end; margin-top: 6px; }
+.btn-confirm    { padding: 8px 20px; background: #3b82f6; color: #fff; border: none;
+                  border-radius: 8px; cursor: pointer; font-size: 0.88rem; }
+.btn-confirm:hover { background: #2563eb; }
+.btn-cancel-mp  { padding: 8px 16px; background: transparent; color: #888;
+                  border: 1px solid #444; border-radius: 8px; cursor: pointer;
+                  font-size: 0.88rem; }
+.btn-cancel-mp:hover { color: #ddd; }
+
+/* Loading overlay */
+.tl-loading     { text-align: center; padding: 60px; color: #555; font-size: 0.9rem; }
+</style>
+
+<div class="tl-wrap">
+
+  <h2 style="margin: 0 0 18px; color: #c4b5fd; font-size: 1.4rem;">
+    &#127916; Template Library
+  </h2>
+
+  <!-- Stats bar -->
+  <div class="tl-stats" id="tlStats">
+    <div class="tl-stat"><div class="tl-stat-val" id="statTotal">—</div><div class="tl-stat-lbl">Total</div></div>
+    <div class="tl-stat"><div class="tl-stat-val" id="statGenerated" style="color:#22c55e">—</div><div class="tl-stat-lbl">Generated</div></div>
+    <div class="tl-stat"><div class="tl-stat-val" id="statNotGen" style="color:#6b7280">—</div><div class="tl-stat-lbl">Not Generated</div></div>
+    <div class="tl-stat"><div class="tl-stat-val" id="statPosted" style="color:#3b82f6">—</div><div class="tl-stat-lbl">Posted</div></div>
+    <div class="tl-stat"><div class="tl-stat-val" id="statNotPosted" style="color:#f97316">—</div><div class="tl-stat-lbl">Not Posted</div></div>
+    <div class="tl-stat"><div class="tl-stat-val" id="statCats" style="color:#a78bfa">—</div><div class="tl-stat-lbl">Categories</div></div>
+  </div>
+
+  <!-- Filters -->
+  <div class="tl-filters">
+
+    <div class="tl-filter-row">
+      <span class="tl-filter-lbl">Category</span>
+      <div class="tl-pills" id="catFilterPills">
+        <button class="tl-pill active" data-val="">All</button>
+      </div>
+    </div>
+
+    <div class="tl-filter-row">
+      <span class="tl-filter-lbl">Frequency</span>
+      <div class="tl-pills" id="freqFilterPills">
+        <button class="tl-pill active" data-val="">All</button>
+        <button class="tl-pill" data-val="High Probability">&#9733;&#9733;&#9733; High</button>
+        <button class="tl-pill" data-val="Medium-High Probability">&#9733;&#9733;&#9734; Med-High</button>
+        <button class="tl-pill" data-val="Medium Probability">&#9733;&#9733;&#9734; Medium</button>
+        <button class="tl-pill" data-val="Lower Probability">&#9733;&#9734;&#9734; Lower</button>
+      </div>
+    </div>
+
+    <div class="tl-filter-row">
+      <span class="tl-filter-lbl">Video</span>
+      <div class="tl-pills" id="videoFilterPills">
+        <button class="tl-pill active" data-val="">All</button>
+        <button class="tl-pill" data-val="generated">&#10003; Generated</button>
+        <button class="tl-pill" data-val="not_generated">&#9711; Not Generated</button>
+      </div>
+    </div>
+
+    <div class="tl-filter-row">
+      <span class="tl-filter-lbl">YouTube</span>
+      <div class="tl-pills" id="ytFilterPills">
+        <button class="tl-pill active" data-val="">All</button>
+        <button class="tl-pill" data-val="posted">&#9654; Posted</button>
+        <button class="tl-pill" data-val="not_posted">&#9711; Not Posted</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Toolbar: search + bulk generate -->
+  <div class="tl-toolbar">
+    <input type="text" class="tl-search" id="tlSearch" placeholder="Search title or question…">
+    <span class="tl-count" id="tlCount"></span>
+
+    <div class="gen-batch-wrap">
+      <label>Generate</label>
+      <input type="number" id="batchCount" value="5" min="1" max="50">
+      <input type="range"  id="batchSlider" value="5" min="1" max="50">
+      <label>ungenerated videos</label>
+    </div>
+    <button class="btn-gen-batch" id="btnGenBatch">&#9654; Start Batch</button>
+  </div>
+
+  <!-- Table -->
+  <div class="tl-table-wrap">
+    <div class="tl-loading" id="tlLoading">Loading templates…</div>
+    <table class="tl-table" id="tlTable" style="display:none">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Category</th>
+          <th>Title</th>
+          <th>Frequency</th>
+          <th>Video</th>
+          <th>YouTube</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="tlBody"></tbody>
+    </table>
+    <div class="tl-loading" id="tlEmpty" style="display:none">No templates match the current filters.</div>
+  </div>
+
+</div>
+
+<!-- YouTube Info modal (reuse browse.html pattern) -->
+<div class="ytinfo-overlay hidden" id="ytInfoOverlay">
+  <div class="ytinfo-modal">
+    <div class="ytinfo-header">
+      <span class="ytinfo-title">&#9654; YouTube Upload Info</span>
+      <button class="ytinfo-close" id="ytInfoClose">&#10005;</button>
+    </div>
+    <div class="ytinfo-loading" id="ytInfoLoading">Loading metadata…</div>
+    <div class="ytinfo-body hidden" id="ytInfoBody">
+      <div class="ytinfo-hint">
+        Copy each field below and paste it when uploading on
+        <a href="https://studio.youtube.com" target="_blank">YouTube Studio</a>.
+      </div>
+      <div class="ytinfo-field">
+        <div class="ytinfo-field-head">
+          <span class="ytinfo-label">Title</span>
+          <button class="ytinfo-copy-btn" data-target="ytInfoTitle">Copy</button>
+        </div>
+        <div class="ytinfo-value ytinfo-single" id="ytInfoTitle"></div>
+      </div>
+      <div class="ytinfo-field">
+        <div class="ytinfo-field-head">
+          <span class="ytinfo-label">Description</span>
+          <button class="ytinfo-copy-btn" data-target="ytInfoDesc">Copy</button>
+        </div>
+        <textarea class="ytinfo-value ytinfo-textarea" id="ytInfoDesc" readonly></textarea>
+      </div>
+      <div class="ytinfo-field">
+        <div class="ytinfo-field-head">
+          <span class="ytinfo-label">Tags</span>
+          <button class="ytinfo-copy-btn" data-target="ytInfoTags">Copy</button>
+        </div>
+        <div class="ytinfo-value ytinfo-single" id="ytInfoTags"></div>
+      </div>
+      <div class="ytinfo-field">
+        <div class="ytinfo-field-head">
+          <span class="ytinfo-label">Video path</span>
+          <button class="ytinfo-copy-btn" data-target="ytInfoPath">Copy</button>
+        </div>
+        <div class="ytinfo-value ytinfo-single" id="ytInfoPath" style="font-size:.75rem;color:#888;word-break:break-all"></div>
+      </div>
+      <div class="ytinfo-actions">
+        <a class="ytinfo-open-btn" href="https://studio.youtube.com/channel/upload" target="_blank">
+          &#9654; Open YouTube Studio
+        </a>
+        <button class="ytinfo-dismiss" id="ytInfoDismiss">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Mark Posted modal -->
+<div class="mp-overlay hidden" id="mpOverlay">
+  <div class="mp-modal">
+    <h3>&#9654; Mark as Posted</h3>
+    <label>YouTube URL (optional)</label>
+    <input type="text" id="mpUrl" placeholder="https://youtu.be/…">
+    <label>YouTube Video ID (optional)</label>
+    <input type="text" id="mpVideoId" placeholder="e.g. dQw4w9WgXcQ">
+    <div class="mp-actions">
+      <button class="btn-cancel-mp" id="mpCancel">Cancel</button>
+      <button class="btn-confirm" id="mpConfirm">&#10003; Mark Posted</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  'use strict';
+
+  /* ── State ──────────────────────────────────────────────────────────────── */
+  let allRows     = [];
+  let filters     = {};
+  let activeFilters = { category: '', frequency_label: '', video_status: '', youtube_status: '' };
+  let searchQuery = '';
+  let mpTargetId  = null;
+
+  /* ── Stats ──────────────────────────────────────────────────────────────── */
+  function loadStats() {
+    fetch('/api/templates/stats')
+      .then(r => r.json())
+      .then(d => {
+        document.getElementById('statTotal').textContent     = d.total      ?? '—';
+        document.getElementById('statGenerated').textContent = d.generated  ?? '—';
+        document.getElementById('statNotGen').textContent    = d.not_generated ?? '—';
+        document.getElementById('statPosted').textContent    = d.posted     ?? '—';
+        document.getElementById('statNotPosted').textContent = d.not_posted ?? '—';
+        document.getElementById('statCats').textContent      = d.categories ?? '—';
+      });
+  }
+
+  /* ── Load templates ─────────────────────────────────────────────────────── */
+  function loadTemplates() {
+    document.getElementById('tlLoading').style.display = 'block';
+    document.getElementById('tlTable').style.display   = 'none';
+    document.getElementById('tlEmpty').style.display   = 'none';
+
+    const params = new URLSearchParams();
+    if (activeFilters.category)        params.set('category',        activeFilters.category);
+    if (activeFilters.frequency_label) params.set('frequency_label', activeFilters.frequency_label);
+    if (activeFilters.video_status)    params.set('video_status',    activeFilters.video_status);
+    if (activeFilters.youtube_status)  params.set('youtube_status',  activeFilters.youtube_status);
+    if (searchQuery)                   params.set('search',          searchQuery);
+
+    fetch('/api/templates/list?' + params)
+      .then(r => r.json())
+      .then(d => {
+        allRows  = d.templates || [];
+        filters  = d.filters   || {};
+        buildCategoryPills(filters.categories || [], filters.colors || {});
+        renderTable(allRows);
+        document.getElementById('tlLoading').style.display = 'none';
+      })
+      .catch(() => {
+        document.getElementById('tlLoading').textContent = 'Error loading templates.';
+      });
+  }
+
+  /* ── Category pills ─────────────────────────────────────────────────────── */
+  function buildCategoryPills(cats, colors) {
+    const container = document.getElementById('catFilterPills');
+    // keep "All" button, rebuild the rest
+    const allBtn = container.querySelector('[data-val=""]');
+    container.innerHTML = '';
+    container.appendChild(allBtn);
+
+    cats.forEach(cat => {
+      const btn = document.createElement('button');
+      btn.className = 'tl-pill cat-pill' + (activeFilters.category === cat ? ' active' : '');
+      btn.dataset.val = cat;
+      btn.style.setProperty('--cat-color', colors[cat] || '#8b5cf6');
+      btn.textContent = cat;
+      container.appendChild(btn);
+    });
+
+    // update "All" active state
+    allBtn.className = 'tl-pill' + (!activeFilters.category ? ' active' : '');
+
+    container.querySelectorAll('.tl-pill').forEach(btn => {
+      btn.addEventListener('click', () => {
+        activeFilters.category = btn.dataset.val;
+        loadTemplates();
+      });
+    });
+  }
+
+  /* ── Render table ───────────────────────────────────────────────────────── */
+  function freqBadge(label) {
+    const cls = { 'High Probability': 'freq-high',
+                  'Medium-High Probability': 'freq-med-high',
+                  'Medium Probability': 'freq-medium',
+                  'Lower Probability': 'freq-lower' }[label] || 'freq-lower';
+    const short = { 'High Probability': '★★★ High',
+                    'Medium-High Probability': '★★☆ Med-High',
+                    'Medium Probability': '★★☆ Medium',
+                    'Lower Probability': '★☆☆ Lower' }[label] || label;
+    return `<span class="freq-badge ${cls}">${short}</span>`;
+  }
+
+  function videoStatus(row) {
+    if (row.video_status === 'generated')
+      return '<span class="status-dot sd-generated"></span>Generated';
+    return '<span class="status-dot sd-not_generated"></span><span style="color:#555">Not yet</span>';
+  }
+
+  function ytStatus(row) {
+    if (row.youtube_status === 'posted')
+      return '<span class="status-dot sd-posted"></span><a href="' +
+             (row.youtube_url || '#') + '" target="_blank" style="color:#3b82f6">Posted</a>';
+    return '<span class="status-dot sd-not_posted"></span><span style="color:#555">Not posted</span>';
+  }
+
+  function rowActions(row) {
+    let btns = '';
+    if (row.video_status === 'not_generated') {
+      btns += `<button class="btn-tl btn-generate" data-action="generate" data-id="${row.id}">&#9654; Generate</button>`;
+    } else {
+      btns += `<button class="btn-tl btn-regen" data-action="regen" data-id="${row.id}">&#8635; Regen</button>`;
+    }
+    if (row.video_status === 'generated') {
+      if (row.youtube_status === 'not_posted') {
+        btns += `<button class="btn-tl btn-posted" data-action="mark-posted" data-id="${row.id}">&#10003; Mark Posted</button>`;
+      } else {
+        btns += `<button class="btn-tl btn-unpost" data-action="unpost" data-id="${row.id}">&#8855; Unpost</button>`;
+      }
+      btns += `<button class="btn-tl btn-ytinfo" data-action="ytinfo" data-id="${row.id}">&#9654; YT Info</button>`;
+    }
+    return btns;
+  }
+
+  function renderTable(rows) {
+    const tbody = document.getElementById('tlBody');
+    tbody.innerHTML = '';
+
+    document.getElementById('tlCount').textContent =
+      rows.length + ' template' + (rows.length !== 1 ? 's' : '');
+
+    if (!rows.length) {
+      document.getElementById('tlEmpty').style.display = 'block';
+      return;
+    }
+
+    document.getElementById('tlTable').style.display = 'table';
+
+    rows.forEach(row => {
+      const catColor = (filters.colors || {})[row.category] || '#8b5cf6';
+      const tr = document.createElement('tr');
+      tr.dataset.id = row.id;
+      tr.innerHTML = `
+        <td class="td-id">${row.template_id || row.id}</td>
+        <td class="td-cat">
+          <span class="cat-dot" style="background:${catColor}"></span>${row.category}
+        </td>
+        <td class="td-title"><span class="tl-title-text" title="${esc(row.title)}">${esc(row.title)}</span></td>
+        <td class="td-freq">${freqBadge(row.frequency_label)}</td>
+        <td>${videoStatus(row)}</td>
+        <td>${ytStatus(row)}</td>
+        <td class="td-actions">${rowActions(row)}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    // Attach action listeners
+    tbody.querySelectorAll('[data-action]').forEach(btn => {
+      btn.addEventListener('click', () => handleRowAction(btn.dataset.action, +btn.dataset.id));
+    });
+  }
+
+  function esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+                    .replace(/"/g,'&quot;');
+  }
+
+  /* ── Row actions ────────────────────────────────────────────────────────── */
+  function handleRowAction(action, id) {
+    if (action === 'generate' || action === 'regen') {
+      if (action === 'regen' &&
+          !confirm('Regenerate this video? The existing video and PDF will be deleted.')) return;
+      fetch(`/api/templates/${id}/generate`, { method: 'POST',
+            headers: {'Content-Type':'application/json'}, body: '{}' })
+        .then(r => r.json())
+        .then(d => {
+          if (d.error) { alert('Error: ' + d.error); return; }
+          alert(`Queued for generation (job ${d.job_id}). Check the queue panel.`);
+          setTimeout(() => { loadStats(); loadTemplates(); }, 500);
+        });
+    }
+    else if (action === 'mark-posted') {
+      mpTargetId = id;
+      document.getElementById('mpUrl').value     = '';
+      document.getElementById('mpVideoId').value = '';
+      document.getElementById('mpOverlay').classList.remove('hidden');
+    }
+    else if (action === 'unpost') {
+      if (!confirm('Remove the "posted" status from this template?')) return;
+      fetch(`/api/templates/${id}/unmark-posted`, { method: 'POST' })
+        .then(() => { loadStats(); loadTemplates(); });
+    }
+    else if (action === 'ytinfo') {
+      openYtInfo(id);
+    }
+  }
+
+  /* ── Batch generate ─────────────────────────────────────────────────────── */
+  const batchCount  = document.getElementById('batchCount');
+  const batchSlider = document.getElementById('batchSlider');
+  batchCount.addEventListener('input', () => { batchSlider.value = batchCount.value; });
+  batchSlider.addEventListener('input', () => { batchCount.value = batchSlider.value; });
+
+  document.getElementById('btnGenBatch').addEventListener('click', () => {
+    const n = parseInt(batchCount.value, 10) || 1;
+    if (!confirm(`Queue the next ${n} ungenerated template(s) for video generation?`)) return;
+    const btn = document.getElementById('btnGenBatch');
+    btn.disabled = true;
+    fetch('/api/templates/generate-batch', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ count: n }),
+    }).then(r => r.json()).then(d => {
+      btn.disabled = false;
+      if (d.error) { alert('Error: ' + d.error); return; }
+      if (d.queued === 0) { alert('No ungenerated templates found.'); return; }
+      alert(`Queued ${d.queued} video(s) for generation. Check the queue panel.`);
+      setTimeout(() => { loadStats(); loadTemplates(); }, 500);
+    }).catch(() => { btn.disabled = false; });
+  });
+
+  /* ── Filter pills wiring ────────────────────────────────────────────────── */
+  function wirePills(containerId, filterKey) {
+    document.getElementById(containerId).addEventListener('click', e => {
+      const btn = e.target.closest('.tl-pill');
+      if (!btn) return;
+      document.querySelectorAll(`#${containerId} .tl-pill`).forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeFilters[filterKey] = btn.dataset.val;
+      loadTemplates();
+    });
+  }
+  wirePills('freqFilterPills',   'frequency_label');
+  wirePills('videoFilterPills',  'video_status');
+  wirePills('ytFilterPills',     'youtube_status');
+
+  /* ── Search ─────────────────────────────────────────────────────────────── */
+  let searchTimer;
+  document.getElementById('tlSearch').addEventListener('input', e => {
+    clearTimeout(searchTimer);
+    searchQuery = e.target.value.trim();
+    searchTimer = setTimeout(loadTemplates, 350);
+  });
+
+  /* ── YouTube Info modal ─────────────────────────────────────────────────── */
+  function openYtInfo(id) {
+    const overlay = document.getElementById('ytInfoOverlay');
+    overlay.classList.remove('hidden');
+    document.getElementById('ytInfoLoading').style.display = 'block';
+    document.getElementById('ytInfoBody').classList.add('hidden');
+
+    fetch(`/api/templates/${id}/youtube-info`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.error) { alert(d.error); overlay.classList.add('hidden'); return; }
+        document.getElementById('ytInfoTitle').textContent     = d.title;
+        document.getElementById('ytInfoDesc').value            = d.description;
+        document.getElementById('ytInfoTags').textContent      = d.tags;
+        document.getElementById('ytInfoPath').textContent      = d.video_path || '(no video yet)';
+        document.getElementById('ytInfoLoading').style.display = 'none';
+        document.getElementById('ytInfoBody').classList.remove('hidden');
+      });
+  }
+
+  document.getElementById('ytInfoClose').addEventListener('click', () =>
+    document.getElementById('ytInfoOverlay').classList.add('hidden'));
+  document.getElementById('ytInfoDismiss').addEventListener('click', () =>
+    document.getElementById('ytInfoOverlay').classList.add('hidden'));
+
+  // Copy buttons
+  document.querySelectorAll('.ytinfo-copy-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const el = document.getElementById(btn.dataset.target);
+      const text = el.tagName === 'TEXTAREA' ? el.value : el.textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        const orig = btn.textContent;
+        btn.textContent = 'Copied!';
+        setTimeout(() => btn.textContent = orig, 1500);
+      });
+    });
+  });
+
+  /* ── Mark-posted modal ──────────────────────────────────────────────────── */
+  document.getElementById('mpCancel').addEventListener('click', () => {
+    document.getElementById('mpOverlay').classList.add('hidden');
+    mpTargetId = null;
+  });
+
+  document.getElementById('mpConfirm').addEventListener('click', () => {
+    if (!mpTargetId) return;
+    const url = document.getElementById('mpUrl').value.trim();
+    const vid = document.getElementById('mpVideoId').value.trim();
+    fetch(`/api/templates/${mpTargetId}/mark-posted`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ youtube_url: url || null, youtube_video_id: vid || null }),
+    }).then(() => {
+      document.getElementById('mpOverlay').classList.add('hidden');
+      mpTargetId = null;
+      loadStats();
+      loadTemplates();
+    });
+  });
+
+  /* ── Init ───────────────────────────────────────────────────────────────── */
+  loadStats();
+  loadTemplates();
+
+  // Auto-refresh stats every 15s (for batch generation progress)
+  setInterval(loadStats, 15000);
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,2746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CELPIP Practice Studio</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; font-family: 'Segoe UI', Arial, sans-serif; font-size: 14px; background: #f1f5f9; color: #1e293b; }
+
+/* ── Layout ── */
+#app { display: flex; height: 100vh; }
+
+/* ── Sidebar ── */
+#sidebar {
+  width: 280px; min-width: 280px; background: #0f172a; color: #e2e8f0;
+  display: flex; flex-direction: column; overflow: hidden;
+  transition: width 0.2s; z-index: 20;
+  border-right: 1px solid #1e293b;
+}
+#sidebar.collapsed { width: 0; min-width: 0; }
+
+#sidebar-header { padding: 18px 16px 14px; border-bottom: 1px solid #1e293b; flex-shrink: 0; }
+#sidebar-header h1 { font-size: 17px; font-weight: 700; color: #f8fafc; letter-spacing: -0.3px; }
+#sidebar-header p { font-size: 11px; color: #64748b; margin-top: 2px; }
+
+#sidebar-search { padding: 12px 14px; border-bottom: 1px solid #1e293b; flex-shrink: 0; }
+#sidebar-search input {
+  width: 100%; background: #1e293b; border: 1px solid #334155; border-radius: 6px;
+  color: #e2e8f0; padding: 7px 10px; font-size: 13px; outline: none;
+}
+#sidebar-search input::placeholder { color: #475569; }
+#sidebar-search input:focus { border-color: #3b82f6; }
+
+#sidebar-filters { flex: 1; overflow-y: auto; padding-bottom: 8px; }
+#sidebar-filters::-webkit-scrollbar { width: 4px; }
+#sidebar-filters::-webkit-scrollbar-track { background: transparent; }
+#sidebar-filters::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+
+.filter-section { border-bottom: 1px solid #1e293b; }
+.filter-section-header {
+  padding: 10px 14px; display: flex; justify-content: space-between; align-items: center;
+  cursor: pointer; user-select: none; color: #94a3b8; font-size: 11px;
+  font-weight: 600; text-transform: uppercase; letter-spacing: 0.7px;
+}
+.filter-section-header:hover { color: #cbd5e1; }
+.filter-section-header .arrow { transition: transform 0.15s; font-size: 10px; }
+.filter-section-header.open .arrow { transform: rotate(90deg); }
+.filter-section-body { overflow: hidden; }
+.filter-section-body.hidden { display: none; }
+
+.filter-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 6px 14px 6px 16px; cursor: pointer; border-radius: 0;
+  transition: background 0.1s; gap: 6px;
+}
+.filter-item:hover { background: #1e293b; }
+.filter-item.active { background: #1e3a5f; }
+.filter-item input { display: none; }
+.filter-item-label { flex: 1; font-size: 13px; color: #cbd5e1; }
+.filter-item.active .filter-item-label { color: #93c5fd; font-weight: 500; }
+.filter-item-count { font-size: 11px; color: #475569; min-width: 24px; text-align: right; }
+.filter-item.active .filter-item-count { color: #60a5fa; }
+
+#sidebar-footer {
+  padding: 12px 14px; border-top: 1px solid #1e293b; flex-shrink: 0;
+  display: flex; gap: 8px;
+}
+#sidebar-footer a {
+  flex: 1; text-align: center; padding: 7px 8px; background: #1e293b;
+  border-radius: 6px; color: #94a3b8; font-size: 12px; text-decoration: none;
+  transition: background 0.15s, color 0.15s;
+}
+#sidebar-footer a:hover { background: #334155; color: #e2e8f0; }
+
+/* ── Main content ── */
+#main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+
+/* ── Toolbar ── */
+#toolbar {
+  background: #fff; border-bottom: 1px solid #e2e8f0; padding: 0 16px;
+  flex-shrink: 0; z-index: 10; box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+#stats-row {
+  display: flex; align-items: center; gap: 6px; padding: 8px 0 7px;
+  border-bottom: 1px solid #f1f5f9; flex-wrap: nowrap;
+}
+#stats-chips { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; flex: 1; }
+#stats-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.stat-chip {
+  display: flex; align-items: center; gap: 4px; padding: 3px 10px;
+  background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 99px;
+  font-size: 12px; color: #475569; white-space: nowrap;
+}
+.stat-chip .val { font-weight: 700; color: #1e293b; }
+.stat-chip.highlight { background: #eff6ff; border-color: #bfdbfe; }
+.stat-chip.highlight .val { color: #3b82f6; }
+
+#toolbar-row {
+  display: flex; align-items: center; gap: 8px; padding: 8px 0;
+}
+#sidebar-toggle {
+  background: none; border: 1px solid #e2e8f0; border-radius: 6px;
+  padding: 6px 9px; cursor: pointer; color: #64748b; font-size: 14px; line-height: 1;
+}
+#sidebar-toggle:hover { background: #f8fafc; }
+
+/* voice-select styled inline inside its wrapper */
+
+.filter-select {
+  border: 1px solid #e2e8f0; border-radius: 6px; padding: 0 8px;
+  font-size: 12px; color: #374151; background: #fff; cursor: pointer;
+  outline: none; height: 34px; transition: border-color 0.15s;
+}
+.filter-select:focus { border-color: #3b82f6; }
+.filter-select:hover { border-color: #94a3b8; }
+
+.toolbar-btn {
+  padding: 5px 12px; border-radius: 6px; border: none; font-size: 12px;
+  font-weight: 500; cursor: pointer; display: flex; align-items: center;
+  gap: 5px; transition: all 0.15s; white-space: nowrap; height: 28px;
+}
+.toolbar-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+#btn-generate-selected {
+  background: #3b82f6; color: #fff;
+}
+#btn-generate-selected:not(:disabled):hover { background: #2563eb; }
+#btn-custom-video {
+  background: #f1f5f9; color: #374151; border: 1px solid #e2e8f0;
+}
+#btn-custom-video:hover { background: #e2e8f0; }
+#btn-queue-toggle {
+  background: #f1f5f9; color: #374151; border: 1px solid #e2e8f0;
+  position: relative;
+}
+#btn-queue-toggle:hover { background: #e2e8f0; }
+#queue-badge {
+  position: absolute; top: -5px; right: -5px;
+  background: #ef4444; color: #fff; border-radius: 99px;
+  font-size: 10px; font-weight: 700; padding: 1px 5px; min-width: 18px;
+  text-align: center; display: none;
+}
+#queue-badge.visible { display: block; }
+
+/* ── List area ── */
+#list-area { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+
+#list-header {
+  display: grid; grid-template-columns: 36px 110px 1fr 260px 160px;
+  gap: 0; padding: 0 16px; background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0; font-size: 11px; font-weight: 600;
+  color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;
+  flex-shrink: 0; min-height: 38px;
+}
+/* Every header cell is a flex container so text and icons both center the same way */
+#list-header > div {
+  display: flex; align-items: center; padding: 0;
+}
+#list-header .col-cb { justify-content: flex-start; }
+.col-select-all { cursor: pointer; accent-color: #3b82f6; width: 16px; height: 16px; }
+
+#list-body { flex: 1; overflow-y: auto; }
+#list-body::-webkit-scrollbar { width: 6px; }
+#list-body::-webkit-scrollbar-track { background: #f8fafc; }
+#list-body::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+#empty-state {
+  display: none; flex-direction: column; align-items: center; justify-content: center;
+  height: 300px; color: #94a3b8; gap: 8px;
+}
+#empty-state.visible { display: flex; }
+#empty-state .icon { font-size: 40px; }
+#empty-state p { font-size: 15px; }
+
+/* ── Rows ── */
+.template-row {
+  border-bottom: 1px solid #f1f5f9; transition: background 0.1s;
+}
+.template-row:hover { background: #f8fafc; }
+.template-row.selected { background: #eff6ff; }
+.template-row.selected:hover { background: #dbeafe; }
+
+.row-main {
+  display: grid; grid-template-columns: 36px 110px 1fr 260px 160px;
+  gap: 0; padding: 10px 16px; align-items: center; cursor: pointer;
+}
+
+.row-cb { display: flex; align-items: center; }
+.row-cb input { accent-color: #3b82f6; width: 16px; height: 16px; cursor: pointer; }
+
+.row-id { display: flex; flex-direction: column; gap: 4px; }
+.row-id-val { font-family: 'Consolas', monospace; font-size: 11px; color: #64748b; }
+
+.row-title-cell { min-width: 0; }
+.row-title {
+  font-weight: 600; font-size: 13px; color: #1e293b;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  display: flex; align-items: center; gap: 6px;
+}
+.row-title .expand-icon { font-size: 10px; color: #94a3b8; flex-shrink: 0; transition: transform 0.15s; }
+.row-title .expand-icon.open { transform: rotate(90deg); }
+.row-category { font-size: 11px; color: #64748b; margin-top: 2px; }
+.category-dot {
+  display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+  margin-right: 4px; vertical-align: middle;
+}
+
+/* row-freq is now stacked inside .row-id */
+
+/* ── Status column header filter toggles ── */
+.col-status { gap: 5px; }
+.sf-btn {
+  height: 22px; border-radius: 11px;
+  border: 1.5px solid #e2e8f0; background: #fff; color: #94a3b8;
+  font-size: 10px; font-weight: 600; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 0 8px; line-height: 1; transition: all 0.15s; white-space: nowrap;
+}
+.sf-btn:hover { border-color: #94a3b8; color: #475569; }
+/* "yes" state — green for Answer and YouTube */
+.sf-btn[data-state="yes"] { background: #dcfce7; color: #16a34a; border-color: #86efac; }
+/* "yes" state — blue for Video */
+#sf-vid[data-state="yes"] { background: #dbeafe; color: #2563eb; border-color: #93c5fd; }
+/* "no" state — red for all */
+.sf-btn[data-state="no"]  { background: #fee2e2; color: #dc2626; border-color: #fca5a5; }
+.freq-badge {
+  display: inline-block; padding: 2px 8px; border-radius: 99px;
+  font-size: 11px; font-weight: 600; white-space: nowrap;
+}
+.freq-high    { background: #fee2e2; color: #dc2626; }
+.freq-med-high { background: #fef3c7; color: #d97706; }
+.freq-medium  { background: #dbeafe; color: #3b82f6; }
+.freq-lower   { background: #f3e8ff; color: #7c3aed; }
+
+.row-status { display: flex; gap: 4px; align-items: center; flex-wrap: nowrap; }
+.status-icon {
+  height: 20px; border-radius: 10px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 600; cursor: default;
+  border: 1.5px solid transparent; padding: 0 7px; white-space: nowrap;
+}
+.status-icon.s-yes  { background: #dcfce7; color: #16a34a; border-color: #bbf7d0; }
+.status-icon.s-no   { background: #f1f5f9; color: #d1d5db; border-color: #e5e7eb; }
+.status-icon.s-vid-yes { background: #dbeafe; color: #2563eb; border-color: #bfdbfe; }
+
+.row-actions { display: flex; gap: 4px; align-items: center; justify-content: flex-end; }
+
+.action-btn {
+  width: 30px; height: 28px; border-radius: 5px; border: none; font-size: 13px;
+  font-weight: 500; cursor: pointer; transition: all 0.15s;
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 0; flex-shrink: 0;
+}
+.action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-progress { min-width: 58px; width: auto; padding: 0 6px; font-size: 11px; }
+.btn-no-answer { background: #f1f5f9; color: #94a3b8; }
+.btn-generate { background: #3b82f6; color: #fff; }
+.btn-generate:hover { background: #2563eb; }
+.btn-progress {
+  background: #dbeafe; color: #1d4ed8; position: relative;
+  overflow: hidden; min-width: 90px;
+}
+.btn-progress-fill {
+  position: absolute; left: 0; top: 0; bottom: 0;
+  background: #93c5fd; transition: width 0.3s; z-index: 0;
+}
+.btn-progress span { position: relative; z-index: 1; }
+.btn-video { background: #dcfce7; color: #16a34a; }
+.btn-video:hover { background: #bbf7d0; }
+.btn-youtube { background: #fef3c7; color: #b45309; }
+.btn-youtube:hover { background: #fde68a; }
+.btn-posted { background: #dcfce7; color: #16a34a; font-weight: 600; }
+.btn-reset { background: #fee2e2; color: #dc2626; }
+.btn-reset:hover { background: #fecaca; }
+.btn-detail { background: #f1f5f9; color: #374151; border: 1px solid #e2e8f0; }
+.btn-detail:hover { background: #e2e8f0; }
+
+/* ── Expanded row detail ── */
+.row-detail {
+  padding: 0 16px 0 152px;
+  background: #fafbfc; border-top: 1px solid #f1f5f9;
+  display: none;
+}
+.row-detail.open { display: block; padding-bottom: 14px; }
+.row-detail-section { margin-top: 10px; }
+.row-detail-label { font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; }
+.row-detail-text { font-size: 13px; color: #374151; line-height: 1.6; }
+.row-detail-text em { color: #94a3b8; font-style: normal; }
+
+/* ── Queue panel ── */
+#queue-panel {
+  position: fixed; bottom: 16px; right: 16px; width: 340px;
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.12); z-index: 100;
+  overflow: hidden;
+}
+#queue-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px; background: #f8fafc; border-bottom: 1px solid #e2e8f0;
+  cursor: pointer; user-select: none;
+}
+#queue-header h3 { font-size: 13px; font-weight: 600; color: #1e293b; }
+#queue-toggle-arrow { font-size: 11px; color: #64748b; transition: transform 0.15s; }
+#queue-toggle-arrow.up { transform: rotate(180deg); }
+#queue-body { max-height: 280px; overflow-y: auto; }
+#queue-body::-webkit-scrollbar { width: 4px; }
+#queue-body::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+.queue-empty { padding: 16px; text-align: center; color: #94a3b8; font-size: 13px; }
+.queue-job {
+  padding: 10px 14px; border-bottom: 1px solid #f1f5f9;
+}
+.queue-job-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+.queue-job-label { font-size: 12px; color: #374151; font-weight: 500; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 200px; }
+.queue-job-status { font-size: 11px; padding: 2px 7px; border-radius: 99px; font-weight: 600; }
+.qs-queued  { background: #fef3c7; color: #b45309; }
+.qs-running { background: #dbeafe; color: #1d4ed8; }
+.qs-done    { background: #dcfce7; color: #16a34a; }
+.qs-error   { background: #fee2e2; color: #dc2626; }
+.queue-job-step { font-size: 11px; color: #64748b; margin-bottom: 4px; }
+.queue-progress-bar { height: 4px; background: #f1f5f9; border-radius: 99px; overflow: hidden; }
+.queue-progress-fill { height: 100%; background: #3b82f6; border-radius: 99px; transition: width 0.3s; }
+.queue-progress-fill.done { background: #16a34a; }
+.queue-progress-fill.error { background: #dc2626; }
+
+/* ── Selection bar ── */
+#selection-bar {
+  position: fixed; bottom: 0; left: 280px; right: 0;
+  background: #1e293b; color: #f8fafc; padding: 12px 20px;
+  display: none; align-items: center; gap: 12px;
+  z-index: 90; box-shadow: 0 -4px 12px rgba(0,0,0,0.15);
+  transition: left 0.2s;
+}
+#selection-bar.visible { display: flex; }
+#selection-bar.sidebar-collapsed { left: 0; }
+#sel-count { font-size: 14px; font-weight: 600; flex: 1; }
+#btn-view-selected {
+  background: transparent; color: #94a3b8; border: 1px solid #334155;
+  padding: 7px 14px; border-radius: 7px; font-size: 13px; cursor: pointer;
+  transition: all 0.15s;
+}
+#btn-view-selected:hover { background: #334155; color: #f8fafc; }
+#btn-view-selected.active { background: #3b82f6; color: #fff; border-color: #3b82f6; }
+#btn-sel-generate {
+  background: #22c55e; color: #fff; border: none; padding: 8px 18px;
+  border-radius: 7px; font-size: 13px; font-weight: 600; cursor: pointer;
+}
+#btn-sel-generate:hover { background: #16a34a; }
+#btn-sel-clear {
+  background: transparent; color: #94a3b8; border: 1px solid #334155;
+  padding: 7px 14px; border-radius: 7px; font-size: 13px; cursor: pointer;
+}
+#btn-sel-clear:hover { background: #334155; color: #f8fafc; }
+
+/* ── Modal overlay ── */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+  display: none; align-items: center; justify-content: center; z-index: 200;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: #fff; border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+  width: 680px; max-width: 96vw; max-height: 90vh; display: flex;
+  flex-direction: column; overflow: hidden;
+}
+.modal-lg { width: 760px; }
+.modal-header {
+  padding: 18px 20px 14px; border-bottom: 1px solid #e2e8f0;
+  display: flex; justify-content: space-between; align-items: flex-start;
+  flex-shrink: 0;
+}
+.modal-header h2 { font-size: 16px; font-weight: 700; color: #1e293b; }
+.modal-header p { font-size: 12px; color: #64748b; margin-top: 3px; }
+.modal-close {
+  background: none; border: none; font-size: 20px; color: #94a3b8;
+  cursor: pointer; line-height: 1; padding: 2px;
+}
+.modal-close:hover { color: #1e293b; }
+.modal-body { padding: 18px 20px; overflow-y: auto; flex: 1; }
+.modal-body::-webkit-scrollbar { width: 5px; }
+.modal-body::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+.modal-footer {
+  padding: 12px 20px; border-top: 1px solid #e2e8f0;
+  display: flex; justify-content: flex-end; gap: 8px; flex-shrink: 0;
+}
+
+/* ── Modal detail styles ── */
+.detail-section { margin-bottom: 18px; }
+.detail-label { font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 6px; }
+.detail-text { font-size: 14px; color: #1e293b; line-height: 1.7; }
+.detail-text.muted { color: #94a3b8; font-style: italic; }
+.vocab-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+.vocab-card {
+  background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;
+  padding: 10px 12px;
+}
+.vocab-word { font-weight: 700; font-size: 13px; color: #1e293b; }
+.vocab-type { font-size: 11px; color: #94a3b8; margin-bottom: 4px; }
+.vocab-def { font-size: 12px; color: #374151; line-height: 1.5; }
+
+/* ── YouTube modal ── */
+.yt-field { margin-bottom: 14px; }
+.yt-field-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+.yt-field-label { font-size: 12px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
+.btn-copy {
+  font-size: 11px; background: #f1f5f9; border: 1px solid #e2e8f0;
+  padding: 3px 8px; border-radius: 4px; cursor: pointer; color: #374151;
+}
+.btn-copy:hover { background: #e2e8f0; }
+.btn-copy.copied { background: #dcfce7; border-color: #bbf7d0; color: #16a34a; }
+.yt-text {
+  background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px;
+  padding: 8px 10px; font-size: 13px; color: #1e293b; line-height: 1.5;
+  max-height: 100px; overflow-y: auto;
+}
+.yt-text.tall { max-height: 160px; }
+.mark-posted-form { margin-top: 16px; padding-top: 16px; border-top: 1px solid #e2e8f0; }
+.mark-posted-form h4 { font-size: 13px; font-weight: 600; margin-bottom: 8px; }
+.form-row { display: flex; gap: 8px; margin-bottom: 8px; }
+.form-row input {
+  flex: 1; border: 1px solid #e2e8f0; border-radius: 6px; padding: 7px 10px;
+  font-size: 13px; outline: none;
+}
+.form-row input:focus { border-color: #3b82f6; }
+.form-btn {
+  padding: 7px 14px; border-radius: 6px; border: none; font-size: 13px;
+  font-weight: 500; cursor: pointer;
+}
+.form-btn-primary { background: #16a34a; color: #fff; }
+.form-btn-primary:hover { background: #15803d; }
+.form-btn-danger { background: #fee2e2; color: #dc2626; }
+.form-btn-danger:hover { background: #fecaca; }
+
+/* ── Custom video modal ── */
+.form-group { margin-bottom: 14px; }
+.form-label { font-size: 12px; font-weight: 600; color: #374151; margin-bottom: 5px; display: block; }
+.form-input {
+  width: 100%; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px 10px;
+  font-size: 13px; outline: none; font-family: inherit;
+}
+.form-input:focus { border-color: #3b82f6; }
+textarea.form-input { resize: vertical; min-height: 80px; }
+.form-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.custom-job-progress { margin-top: 14px; padding: 12px; background: #f8fafc; border-radius: 8px; display: none; }
+.custom-job-progress.visible { display: block; }
+.custom-job-label { font-size: 12px; color: #374151; font-weight: 500; margin-bottom: 6px; }
+.custom-progress-bar { height: 6px; background: #e2e8f0; border-radius: 99px; overflow: hidden; margin-bottom: 4px; }
+.custom-progress-fill { height: 100%; background: #3b82f6; border-radius: 99px; transition: width 0.3s; }
+.custom-step-text { font-size: 11px; color: #64748b; }
+
+/* ── Alert toast ── */
+#toast {
+  position: fixed; top: 20px; right: 20px; padding: 10px 16px;
+  border-radius: 8px; font-size: 13px; font-weight: 500; z-index: 300;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12); display: none;
+  max-width: 340px; line-height: 1.4;
+}
+#toast.success { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+#toast.error   { background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; }
+#toast.info    { background: #dbeafe; color: #1d4ed8; border: 1px solid #bfdbfe; }
+#toast.visible { display: block; }
+
+/* ── Loading overlay ── */
+#loading-overlay {
+  position: fixed; inset: 0; background: #fff; z-index: 500;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 16px;
+}
+#loading-overlay h2 { font-size: 20px; color: #1e293b; }
+#loading-overlay p { font-size: 14px; color: #64748b; }
+.spinner {
+  width: 40px; height: 40px; border: 4px solid #e2e8f0;
+  border-top-color: #3b82f6; border-radius: 50%; animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Open-file action buttons ── */
+.btn-open-folder { background: #fef9c3; color: #854d0e; }
+.btn-open-folder:hover { background: #fef08a; }
+.btn-open-video  { background: #dcfce7; color: #15803d; }
+.btn-open-video:hover  { background: #bbf7d0; }
+
+/* ── Toolbar search + category ── */
+#toolbar-search-wrap {
+  flex: 1; display: flex; align-items: center; gap: 6px; min-width: 0;
+  background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px;
+  padding: 0 10px; height: 34px;
+}
+#toolbar-search-wrap:focus-within { border-color: #3b82f6; background: #fff; }
+#toolbar-search-icon { color: #94a3b8; font-size: 14px; flex-shrink: 0; }
+#toolbar-search { flex: 1; border: none; background: none; outline: none;
+  font-size: 13px; color: #374151; min-width: 0; }
+#toolbar-search::placeholder { color: #94a3b8; }
+/* ── Custom category dropdown ── */
+#cat-dropdown-wrap {
+  position: relative; flex-shrink: 0;
+}
+#cat-dropdown-btn {
+  display: flex; align-items: center; gap: 6px;
+  border: 1px solid #e2e8f0; border-radius: 6px; padding: 0 10px;
+  font-size: 12px; color: #374151; background: #fff; cursor: pointer;
+  outline: none; height: 34px; white-space: nowrap; max-width: 160px;
+  min-width: 120px; transition: border-color 0.15s;
+}
+#cat-dropdown-btn:hover { border-color: #94a3b8; }
+#cat-dropdown-btn.open  { border-color: #3b82f6; }
+#cat-dropdown-label { flex: 1; overflow: hidden; text-overflow: ellipsis; text-align: left; }
+#cat-dropdown-arrow { font-size: 9px; color: #94a3b8; transition: transform 0.15s; flex-shrink: 0; }
+#cat-dropdown-btn.open #cat-dropdown-arrow { transform: rotate(180deg); }
+
+#cat-dropdown-panel {
+  position: absolute; top: calc(100% + 4px); left: 0;
+  width: 220px; background: #fff; border: 1px solid #e2e8f0;
+  border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.10);
+  z-index: 50; display: none; flex-direction: column; overflow: hidden;
+}
+#cat-dropdown-panel.open { display: flex; }
+
+#cat-dropdown-search-wrap {
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 10px; border-bottom: 1px solid #f1f5f9;
+}
+#cat-dropdown-search-wrap span { color: #94a3b8; font-size: 12px; flex-shrink: 0; }
+#cat-dropdown-search {
+  flex: 1; border: none; outline: none; font-size: 12px;
+  color: #374151; background: transparent;
+}
+#cat-dropdown-search::placeholder { color: #94a3b8; }
+
+#cat-dropdown-list {
+  overflow-y: auto; max-height: 220px;
+}
+#cat-dropdown-list::-webkit-scrollbar { width: 4px; }
+#cat-dropdown-list::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+.cat-opt {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 12px; font-size: 12px; color: #374151;
+  cursor: pointer; transition: background 0.1s; white-space: nowrap;
+}
+.cat-opt:hover  { background: #f8fafc; }
+.cat-opt.active { background: #eff6ff; color: #2563eb; font-weight: 600; }
+.cat-opt-dot    { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+#cat-dropdown-empty {
+  padding: 12px; text-align: center; font-size: 12px; color: #94a3b8; display: none;
+}
+
+/* ── Priority dropdown (shares button/panel shape with cat-dropdown) ── */
+#pri-dropdown-wrap { position: relative; flex-shrink: 0; }
+#pri-dropdown-btn {
+  display: flex; align-items: center; gap: 6px;
+  border: 1px solid #e2e8f0; border-radius: 6px; padding: 0 10px;
+  font-size: 12px; color: #374151; background: #fff; cursor: pointer;
+  outline: none; height: 34px; white-space: nowrap; min-width: 110px;
+  transition: border-color 0.15s;
+}
+#pri-dropdown-btn:hover { border-color: #94a3b8; }
+#pri-dropdown-btn.open  { border-color: #3b82f6; }
+#pri-dropdown-label { flex: 1; text-align: left; }
+#pri-dropdown-arrow { font-size: 9px; color: #94a3b8; transition: transform 0.15s; flex-shrink: 0; }
+#pri-dropdown-btn.open #pri-dropdown-arrow { transform: rotate(180deg); }
+
+#pri-dropdown-panel {
+  position: absolute; top: calc(100% + 4px); left: 0;
+  width: 180px; background: #fff; border: 1px solid #e2e8f0;
+  border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.10);
+  z-index: 50; display: none; flex-direction: column; overflow: hidden;
+}
+#pri-dropdown-panel.open { display: flex; }
+#pri-dropdown-list { display: flex; flex-direction: column; padding: 4px 0; }
+.pri-opt {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 14px; font-size: 12px; color: #374151;
+  cursor: pointer; transition: background 0.1s;
+}
+.pri-opt:hover  { background: #f8fafc; }
+.pri-opt.active { background: #eff6ff; font-weight: 600; }
+
+/* ── Settings (sidebar) ── */
+.setting-row { display:flex; align-items:center; justify-content:space-between; padding:7px 14px; gap:8px; }
+.setting-label { font-size:12px; color:#94a3b8; flex-shrink:0; min-width:62px; }
+.setting-control { display:flex; align-items:center; gap:6px; flex:1; min-width:0; }
+.setting-slider { flex:1; cursor:pointer; accent-color:#3b82f6; }
+.setting-val { font-size:12px; color:#e2e8f0; font-weight:600; min-width:32px; text-align:right; flex-shrink:0; }
+.setting-actions { display:flex; gap:6px; padding:6px 14px 10px; align-items:center; }
+.setting-btn { flex:1; padding:5px 8px; border-radius:5px; border:1px solid #334155; background:#1e293b; color:#94a3b8; font-size:12px; cursor:pointer; transition:all 0.15s; text-align:center; }
+.setting-btn:hover { background:#334155; color:#e2e8f0; }
+.setting-btn-save { background:#1e3a5f; border-color:#3b82f6; color:#93c5fd; }
+.setting-btn-save:hover { background:#1d4ed8; color:#fff; }
+.setting-preview-wrap { padding:0 14px 4px; }
+.setting-preview-wrap img { width:100%; border-radius:4px; border:1px solid #334155; }
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  #sidebar { width: 0; min-width: 0; }
+  #sidebar.collapsed { width: 0; }
+  #sidebar.mobile-open { width: 280px; min-width: 280px; position: absolute; height: 100%; }
+  #list-header, .row-main { grid-template-columns: 36px 100px 1fr 220px 160px; }
+  #selection-bar { left: 0; }
+}
+@media (max-width: 700px) {
+  #list-header .col-status,
+  .row-status { display: none; }
+  #list-header, .row-main { grid-template-columns: 36px 100px 1fr 160px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Loading overlay -->
+<div id="loading-overlay">
+  <div class="spinner"></div>
+  <h2>CELPIP Practice Studio</h2>
+  <p>Loading templates…</p>
+</div>
+
+<!-- Toast notification -->
+<div id="toast"></div>
+
+<!-- App layout -->
+<div id="app">
+
+  <!-- ── Sidebar ── -->
+  <aside id="sidebar">
+    <div id="sidebar-header">
+      <h1>CELPIP Studio</h1>
+      <p>Practice Video Generator</p>
+    </div>
+
+    <div id="sidebar-search">
+      <input type="text" id="search-input" placeholder="Search title or question…" autocomplete="off">
+    </div>
+
+    <div id="sidebar-filters">
+
+      <!-- Skill filter -->
+      <div class="filter-section" id="fs-skill">
+        <div class="filter-section-header" onclick="toggleSection('skill')">
+          <span>Skill</span><span class="arrow">▶</span>
+        </div>
+        <div class="filter-section-body hidden" id="fsb-skill">
+          <div class="filter-item active" data-skill="speaking" onclick="setSkill('speaking')">
+            <span class="filter-item-label">Speaking</span>
+            <span class="filter-item-count" id="skill-count-speaking">0</span>
+          </div>
+          <div class="filter-item" data-skill="writing" onclick="setSkill('writing')" style="opacity:0.4;pointer-events:none">
+            <span class="filter-item-label">Writing</span>
+            <span class="filter-item-count">0</span>
+          </div>
+          <div class="filter-item" data-skill="listening" onclick="setSkill('listening')" style="opacity:0.4;pointer-events:none">
+            <span class="filter-item-label">Listening</span>
+            <span class="filter-item-count">0</span>
+          </div>
+          <div class="filter-item" data-skill="reading" onclick="setSkill('reading')" style="opacity:0.4;pointer-events:none">
+            <span class="filter-item-label">Reading</span>
+            <span class="filter-item-count">0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Part filter -->
+      <div class="filter-section" id="fs-part">
+        <div class="filter-section-header" onclick="toggleSection('part')">
+          <span>Part</span><span class="arrow">▶</span>
+        </div>
+        <div class="filter-section-body hidden" id="fsb-part">
+          <!-- injected by JS -->
+        </div>
+      </div>
+
+      <!-- Band filter -->
+      <div class="filter-section" id="fs-band">
+        <div class="filter-section-header" onclick="toggleSection('band')">
+          <span>Band</span><span class="arrow">▶</span>
+        </div>
+        <div class="filter-section-body hidden" id="fsb-band">
+          <div class="filter-item active" data-band="" onclick="setBand('')">
+            <span class="filter-item-label">All Bands</span>
+            <span class="filter-item-count" id="band-count-all">0</span>
+          </div>
+          <div class="filter-item" data-band="9_10" onclick="setBand('9_10')">
+            <span class="filter-item-label">Band 9–10</span>
+            <span class="filter-item-count" id="band-count-9_10">0</span>
+          </div>
+          <div class="filter-item" data-band="7_8" onclick="setBand('7_8')">
+            <span class="filter-item-label">Band 7–8</span>
+            <span class="filter-item-count" id="band-count-7_8">0</span>
+          </div>
+          <div class="filter-item" data-band="5_6" onclick="setBand('5_6')">
+            <span class="filter-item-label">Band 5–6</span>
+            <span class="filter-item-count" id="band-count-5_6">0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Category filter -->
+      <div class="filter-section" id="fs-category">
+        <div class="filter-section-header open" onclick="toggleSection('category')">
+          <span>Category</span><span class="arrow">▶</span>
+        </div>
+        <div class="filter-section-body" id="fsb-category">
+          <div class="filter-item active" data-val="" onclick="setCategory('')">
+            <span class="filter-item-label">All Categories</span>
+            <span class="filter-item-count" id="cat-count-all">0</span>
+          </div>
+          <!-- injected by JS -->
+        </div>
+      </div>
+
+      <!-- Priority filter -->
+      <div class="filter-section" id="fs-priority">
+        <div class="filter-section-header" onclick="toggleSection('priority')">
+          <span>Priority</span><span class="arrow">▶</span>
+        </div>
+        <div class="filter-section-body hidden" id="fsb-priority">
+          <div class="filter-item" data-freq="High Probability" onclick="toggleFreq('High Probability')">
+            <span class="filter-item-label">★★★ High Priority</span>
+            <span class="filter-item-count" id="freq-count-high">0</span>
+          </div>
+          <div class="filter-item" data-freq="Medium-High Probability" onclick="toggleFreq('Medium-High Probability')">
+            <span class="filter-item-label">★★☆ Med-High</span>
+            <span class="filter-item-count" id="freq-count-med-high">0</span>
+          </div>
+          <div class="filter-item" data-freq="Medium Probability" onclick="toggleFreq('Medium Probability')">
+            <span class="filter-item-label">★★☆ Medium</span>
+            <span class="filter-item-count" id="freq-count-medium">0</span>
+          </div>
+          <div class="filter-item" data-freq="Lower Probability" onclick="toggleFreq('Lower Probability')">
+            <span class="filter-item-label">★☆☆ Lower</span>
+            <span class="filter-item-count" id="freq-count-lower">0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Answer filter -->
+      <div class="filter-section" id="fs-answer">
+        <div class="filter-section-header" onclick="toggleSection('answer')">
+          <span>Answer</span><span class="arrow">▶</span>
+        </div>
+        <div class="filter-section-body hidden" id="fsb-answer">
+          <div class="filter-item active" data-ans="" onclick="setAnswer('')">
+            <span class="filter-item-label">All</span>
+          </div>
+          <div class="filter-item" data-ans="yes" onclick="setAnswer('yes')">
+            <span class="filter-item-label">Has Answer</span>
+          </div>
+          <div class="filter-item" data-ans="no" onclick="setAnswer('no')">
+            <span class="filter-item-label">No Answer</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Video filter -->
+      <div class="filter-section" id="fs-video">
+        <div class="filter-section-header open" onclick="toggleSection('video')">
+          <span>Video</span><span class="arrow">▶</span>
+        </div>
+        <div class="filter-section-body" id="fsb-video">
+          <div class="filter-item active" data-vid="" onclick="setVideo('')">
+            <span class="filter-item-label">All</span>
+          </div>
+          <div class="filter-item" data-vid="generated" onclick="setVideo('generated')">
+            <span class="filter-item-label">Generated</span>
+          </div>
+          <div class="filter-item" data-vid="not_generated" onclick="setVideo('not_generated')">
+            <span class="filter-item-label">Not Generated</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- YouTube filter -->
+      <div class="filter-section" id="fs-youtube">
+        <div class="filter-section-header" onclick="toggleSection('youtube')">
+          <span>YouTube</span><span class="arrow">▶</span>
+        </div>
+        <div class="filter-section-body hidden" id="fsb-youtube">
+          <div class="filter-item active" data-yt="" onclick="setYoutube('')">
+            <span class="filter-item-label">All</span>
+          </div>
+          <div class="filter-item" data-yt="posted" onclick="setYoutube('posted')">
+            <span class="filter-item-label">Posted</span>
+          </div>
+          <div class="filter-item" data-yt="not_posted" onclick="setYoutube('not_posted')">
+            <span class="filter-item-label">Not Posted</span>
+          </div>
+        </div>
+      </div>
+
+
+    </div><!-- /sidebar-filters -->
+
+    <div id="sidebar-footer">
+      <a href="/video-preview">Preview Tool</a>
+      <a href="/shadowing">Shadowing</a>
+    </div>
+  </aside>
+
+  <!-- ── Main ── -->
+  <div id="main">
+
+    <!-- Toolbar -->
+    <div id="toolbar">
+      <div id="stats-row">
+        <div id="stats-chips">
+          <div class="stat-chip"><span class="val" id="stat-total">0</span>&nbsp;Total</div>
+          <div class="stat-chip"><span class="val" id="stat-answers">0</span>&nbsp;Answers</div>
+          <div class="stat-chip"><span class="val" id="stat-videos">0</span>&nbsp;Videos</div>
+          <div class="stat-chip"><span class="val" id="stat-youtube">0</span>&nbsp;Posted</div>
+          <div class="stat-chip highlight"><span class="val" id="stat-showing">0</span>&nbsp;Showing</div>
+        </div>
+        <button id="btn-font-size" onclick="openFontSizeModal()"
+                style="display:flex;align-items:center;gap:5px;padding:2px 10px;height:28px;border:1px solid #e2e8f0;border-radius:6px;background:#f8fafc;color:#374151;font-size:12px;font-weight:500;cursor:pointer;flex-shrink:0;transition:all 0.15s;margin-left:2px;"
+                onmouseover="this.style.background='#e2e8f0';this.style.borderColor='#94a3b8'"
+                onmouseout="this.style.background='#f8fafc';this.style.borderColor='#e2e8f0'">
+          <span style="font-size:13px;line-height:1">Aa</span> Font Size
+        </button>
+        <button id="btn-voice-preview" onclick="openVoicePreviewModal()"
+                style="display:flex;align-items:center;gap:5px;padding:2px 10px;height:28px;border:1px solid #e2e8f0;border-radius:6px;background:#f8fafc;color:#374151;font-size:12px;font-weight:500;cursor:pointer;flex-shrink:0;transition:all 0.15s;margin-left:2px;"
+                onmouseover="this.style.background='#e2e8f0';this.style.borderColor='#94a3b8'"
+                onmouseout="this.style.background='#f8fafc';this.style.borderColor='#e2e8f0'">
+          <span style="font-size:13px;line-height:1">🔊</span> Voices
+        </button>
+        <div id="stats-actions">
+          <button class="toolbar-btn" id="btn-generate-selected" disabled onclick="generateSelected()">
+            ▶ Generate (<span id="sel-count-badge">0</span>)
+          </button>
+          <button class="toolbar-btn" id="btn-custom-video" onclick="openCustomModal()">+ Custom</button>
+          <button class="toolbar-btn" id="btn-queue-toggle" onclick="toggleQueuePanel()">
+            Queue <span id="queue-badge">0</span>
+          </button>
+        </div>
+      </div>
+      <div id="toolbar-row">
+        <button id="sidebar-toggle" onclick="toggleSidebar()" title="Toggle sidebar">☰</button>
+        <div id="toolbar-search-wrap">
+          <span id="toolbar-search-icon">🔍</span>
+          <input type="text" id="toolbar-search" placeholder="Search title or question…" autocomplete="off">
+        </div>
+        <div id="cat-dropdown-wrap">
+          <button id="cat-dropdown-btn" onclick="toggleCatDropdown()" type="button">
+            <span id="cat-dropdown-label">All Categories</span>
+            <span id="cat-dropdown-arrow">▼</span>
+          </button>
+          <div id="cat-dropdown-panel">
+            <div id="cat-dropdown-search-wrap">
+              <span>🔍</span>
+              <input id="cat-dropdown-search" type="text" placeholder="Search categories…" autocomplete="off">
+            </div>
+            <div id="cat-dropdown-list">
+              <div class="cat-opt active" data-val="" onclick="selectCatOpt('')">
+                <span class="cat-opt-dot" style="background:#cbd5e1"></span>All Categories
+              </div>
+            </div>
+            <div id="cat-dropdown-empty">No match</div>
+          </div>
+        </div>
+        <div id="pri-dropdown-wrap">
+          <button id="pri-dropdown-btn" onclick="togglePriDropdown()" type="button">
+            <span id="pri-dropdown-label">All Priority</span>
+            <span id="pri-dropdown-arrow">▼</span>
+          </button>
+          <div id="pri-dropdown-panel">
+            <div id="pri-dropdown-list">
+              <div class="pri-opt active" data-val="" onclick="selectPriOpt('')">All Priority</div>
+              <div class="pri-opt" data-val="High Probability"        onclick="selectPriOpt('High Probability')">        <span class="freq-badge freq-high">High</span></div>
+              <div class="pri-opt" data-val="Medium-High Probability" onclick="selectPriOpt('Medium-High Probability')"><span class="freq-badge freq-med-high">Med-High</span></div>
+              <div class="pri-opt" data-val="Medium Probability"      onclick="selectPriOpt('Medium Probability')">      <span class="freq-badge freq-medium">Medium</span></div>
+              <div class="pri-opt" data-val="Lower Probability"       onclick="selectPriOpt('Lower Probability')">       <span class="freq-badge freq-lower">Lower</span></div>
+            </div>
+          </div>
+        </div>
+        <select class="filter-select" id="tb-band" title="Filter by band" onchange="setBandFromToolbar(this.value)">
+          <option value="">All Bands</option>
+          <option value="9_10">Band 9–10</option>
+          <option value="7_8">Band 7–8</option>
+          <option value="5_6">Band 5–6</option>
+        </select>
+        <select class="filter-select" id="tb-part" title="Filter by part" onchange="setPartFromToolbar(this.value)">
+          <option value="">All Parts</option>
+        </select>
+        <select class="filter-select" id="tb-skill" title="Filter by skill" onchange="setSkillFromToolbar(this.value)">
+          <option value="speaking">Speaking</option>
+          <option value="writing"   disabled>Writing</option>
+          <option value="listening" disabled>Listening</option>
+          <option value="reading"   disabled>Reading</option>
+        </select>
+        <div style="display:flex;align-items:center;gap:4px;border:1px solid #e2e8f0;border-radius:6px;padding:0 8px;height:34px;background:#fff">
+          <span style="font-size:11px;color:#94a3b8;white-space:nowrap">🎙</span>
+          <select id="voice-select" style="border:none;outline:none;font-size:12px;color:#374151;background:transparent;cursor:pointer;min-width:90px"></select>
+        </div>
+      </div>
+    </div>
+
+    <!-- List header -->
+    <div id="list-header">
+      <div class="col-cb"><input type="checkbox" class="col-select-all" id="select-all" onclick="toggleSelectAll()"></div>
+      <div>ID / Priority</div>
+      <div>Question &amp; Category</div>
+      <div class="col-status">
+        <button class="sf-btn" id="sf-ans" data-state="" onclick="cycleStatusFilter('ans')" title="Filter: Answer (click to cycle)">Answer</button>
+        <button class="sf-btn" id="sf-vid" data-state="" onclick="cycleStatusFilter('vid')" title="Filter: Video (click to cycle)">Video</button>
+        <button class="sf-btn" id="sf-yt"  data-state="" onclick="cycleStatusFilter('yt')"  title="Filter: YouTube (click to cycle)">YouTube</button>
+      </div>
+      <div>Actions</div>
+    </div>
+
+    <!-- List body -->
+    <div id="list-area">
+      <div id="list-body">
+        <div id="empty-state">
+          <div class="icon">🔍</div>
+          <p>No templates match your filters.</p>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<!-- ── Queue panel ── -->
+<div id="queue-panel" style="display:none">
+  <div id="queue-header" onclick="toggleQueueBody()">
+    <h3 id="queue-title">Queue</h3>
+    <span id="queue-toggle-arrow" class="up">▲</span>
+  </div>
+  <div id="queue-body">
+    <div class="queue-empty">No active jobs</div>
+  </div>
+</div>
+
+<!-- ── Selection bar ── -->
+<div id="selection-bar">
+  <div id="sel-count">0 selected</div>
+  <button id="btn-view-selected" onclick="toggleViewSelected()">👁 View Selected</button>
+  <button id="btn-sel-generate" onclick="generateSelected()">▶ Generate</button>
+  <button id="btn-sel-clear" onclick="clearSelection()">✕ Clear All</button>
+</div>
+
+<!-- ── Detail modal ── -->
+<div class="modal-overlay" id="modal-detail">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <div>
+        <h2 id="detail-title">Question Detail</h2>
+        <p id="detail-meta"></p>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-detail')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="detail-section">
+        <div class="detail-label">Question</div>
+        <div class="detail-text" id="detail-question"></div>
+      </div>
+      <div class="detail-section">
+        <div class="detail-label">Model Answer</div>
+        <div class="detail-text" id="detail-answer"></div>
+      </div>
+      <div class="detail-section" id="detail-vocab-section">
+        <div class="detail-label">Vocabulary</div>
+        <div class="vocab-grid" id="detail-vocab"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="action-btn btn-detail" onclick="closeModal('modal-detail')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── YouTube info modal ── -->
+<div class="modal-overlay" id="modal-youtube">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <div>
+        <h2>YouTube Info</h2>
+        <p id="yt-modal-meta"></p>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-youtube')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="yt-modal-loading" style="text-align:center;padding:30px;color:#64748b;">Loading…</div>
+      <div id="yt-modal-content" style="display:none">
+        <div class="yt-field">
+          <div class="yt-field-header">
+            <span class="yt-field-label">Title</span>
+            <button class="btn-copy" onclick="copyField('yt-title-text', this)">Copy</button>
+          </div>
+          <div class="yt-text" id="yt-title-text"></div>
+        </div>
+        <div class="yt-field">
+          <div class="yt-field-header">
+            <span class="yt-field-label">Description</span>
+            <button class="btn-copy" onclick="copyField('yt-desc-text', this)">Copy</button>
+          </div>
+          <div class="yt-text tall" id="yt-desc-text"></div>
+        </div>
+        <div class="yt-field">
+          <div class="yt-field-header">
+            <span class="yt-field-label">Tags</span>
+            <button class="btn-copy" onclick="copyField('yt-tags-text', this)">Copy</button>
+          </div>
+          <div class="yt-text" id="yt-tags-text"></div>
+        </div>
+        <div id="yt-already-posted" style="display:none;margin-top:14px;padding:10px 14px;background:#dcfce7;border-radius:8px;border:1px solid #bbf7d0;">
+          <div style="font-size:13px;font-weight:600;color:#16a34a;margin-bottom:4px;">✓ Already Posted</div>
+          <a id="yt-posted-link" href="#" target="_blank" style="font-size:13px;color:#16a34a;"></a>
+          <button class="form-btn form-btn-danger" style="margin-left:12px;font-size:11px;padding:3px 8px;" onclick="unmarkPosted()">Unmark</button>
+        </div>
+        <div class="mark-posted-form" id="yt-mark-form">
+          <h4>Mark as Posted</h4>
+          <div class="form-row">
+            <input type="text" id="yt-url-input" placeholder="YouTube URL (e.g. https://youtu.be/abc123)">
+            <input type="text" id="yt-vid-input" placeholder="Video ID (optional)">
+            <button class="form-btn form-btn-primary" onclick="markPosted()">Mark Posted</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="action-btn btn-detail" onclick="closeModal('modal-youtube')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Custom video modal ── -->
+<div class="modal-overlay" id="modal-custom">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <div>
+        <h2>Custom Video Generator</h2>
+        <p>Generate a one-off video from your own question and answer</p>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-custom')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row-2">
+        <div class="form-group">
+          <label class="form-label">Category</label>
+          <select class="form-input" id="cv-category">
+            <option>Career &amp; Work</option>
+            <option>Communication &amp; Conflict</option>
+            <option>Cultural Adaptation</option>
+            <option>Education &amp; Learning</option>
+            <option>Environment &amp; Community</option>
+            <option>Family &amp; Relationships</option>
+            <option>Finance &amp; Money</option>
+            <option>Food &amp; Nutrition</option>
+            <option>Health &amp; Lifestyle</option>
+            <option>Housing &amp; Home</option>
+            <option>Parenting &amp; Children</option>
+            <option>Personal Development</option>
+            <option>Shopping &amp; Consumer</option>
+            <option>Social Life &amp; Friendships</option>
+            <option>Sports &amp; Recreation</option>
+            <option>Stress &amp; Wellbeing</option>
+            <option>Technology &amp; Digital</option>
+            <option>Transportation</option>
+            <option>Travel &amp; Vacation</option>
+            <option>Volunteer &amp; Community</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Title</label>
+          <input type="text" class="form-input" id="cv-title" placeholder="Short descriptive title">
+        </div>
+      </div>
+      <div class="form-row-2">
+        <div class="form-group">
+          <label class="form-label">Band</label>
+          <select class="form-input" id="cv-band">
+            <option value="9_10">Band 9-10</option>
+            <option value="7_8">Band 7-8</option>
+            <option value="5_6">Band 5-6</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Voice</label>
+          <select class="form-input" id="cv-voice"></select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Question (full scenario text)</label>
+        <textarea class="form-input" id="cv-question" rows="4" placeholder="My friend told me that… What advice would you give me?"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Answer</label>
+        <textarea class="form-input" id="cv-answer" rows="6" placeholder="First, I would suggest…"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Vocabulary (JSON array, optional)</label>
+        <textarea class="form-input" id="cv-vocab" rows="3" placeholder='[{"word":"resilience","definition":"ability to recover","type":"noun"}]'></textarea>
+      </div>
+
+      <div class="custom-job-progress" id="cv-progress">
+        <div class="custom-job-label" id="cv-progress-label">Generating video…</div>
+        <div class="custom-progress-bar">
+          <div class="custom-progress-fill" id="cv-progress-fill" style="width:0%"></div>
+        </div>
+        <div class="custom-step-text" id="cv-step-text"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="action-btn btn-detail" onclick="closeModal('modal-custom')">Cancel</button>
+      <button class="toolbar-btn btn-generate" id="cv-submit-btn" style="background:#3b82f6;color:#fff;border:none;" onclick="submitCustomVideo()">▶ Generate Video</button>
+    </div>
+  </div>
+</div>
+
+<!-- Font Size Modal -->
+<div class="modal-overlay" id="font-size-modal">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <div>
+        <h2>Font Size</h2>
+        <p>Set default font scale per section. Affects all generated videos.</p>
+      </div>
+      <button class="modal-close" onclick="closeModal('font-size-modal')">✕</button>
+    </div>
+    <div class="modal-body" style="display:flex;gap:24px;padding:20px">
+
+      <!-- Left: sliders -->
+      <div style="flex:1;min-width:0">
+        <div style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:14px">Section Scale</div>
+        <div id="fs-modal-sliders">
+          <!-- rendered by JS -->
+        </div>
+        <div style="display:flex;gap:8px;margin-top:20px;align-items:center">
+          <button id="fs-modal-save" onclick="saveFontScales(true)"
+                  style="flex:1;padding:9px;background:#3b82f6;color:#fff;border:none;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer">
+            ✓ Save as Default
+          </button>
+          <button onclick="resetFontScales()"
+                  style="padding:9px 14px;background:#f1f5f9;color:#374151;border:1px solid #e2e8f0;border-radius:7px;font-size:13px;cursor:pointer">
+            ↺ Reset
+          </button>
+        </div>
+        <div id="fs-modal-status" style="text-align:center;font-size:12px;margin-top:8px;min-height:18px;color:#16a34a"></div>
+      </div>
+
+      <!-- Right: preview -->
+      <div style="width:360px;flex-shrink:0">
+        <div style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">Preview</div>
+        <div id="fs-modal-tabs" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+          <!-- rendered by JS -->
+        </div>
+        <div style="position:relative;border-radius:8px;overflow:hidden;aspect-ratio:16/9;background:#111">
+          <div id="fs-modal-prev-loading" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;color:#555">Loading…</div>
+          <img id="fs-modal-prev-img" src="" alt="Preview" style="width:100%;height:100%;object-fit:cover;display:none"
+               onload="this.style.display='block';document.getElementById('fs-modal-prev-loading').style.display='none'"
+               onerror="document.getElementById('fs-modal-prev-loading').textContent='Error'">
+        </div>
+        <div style="font-size:11px;color:#94a3b8;margin-top:6px;text-align:center" id="fs-modal-prev-label">Section 1 — 1.0×</div>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="action-btn btn-detail" onclick="closeModal('font-size-modal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Voice Preview Modal -->
+<div class="modal-overlay" id="voice-preview-modal">
+  <div class="modal modal-lg" style="max-width:620px">
+    <div class="modal-header">
+      <div>
+        <h2>🔊 Voice Preview</h2>
+        <p>Listen to all available voices and set your default. Samples are generated once and cached.</p>
+      </div>
+      <button class="modal-close" onclick="closeModal('voice-preview-modal')">✕</button>
+    </div>
+    <div class="modal-body" style="padding:20px">
+      <div id="vp-groups" style="display:flex;flex-direction:column;gap:18px"></div>
+      <div id="vp-status" style="font-size:12px;color:#94a3b8;margin-top:14px;min-height:16px;text-align:center"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="action-btn btn-detail" onclick="closeModal('voice-preview-modal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<style>
+.vp-group-title { font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:8px; }
+.vp-voice-row { display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:7px;border:1px solid #e2e8f0;background:#f8fafc;margin-bottom:6px;transition:border-color 0.15s; }
+.vp-voice-row.active-voice { border-color:#3b82f6;background:#eff6ff; }
+.vp-voice-name { flex:1;font-size:13px;font-weight:500;color:#1e293b; }
+.vp-play-btn { width:30px;height:28px;border-radius:6px;border:1px solid #e2e8f0;background:#fff;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.15s; }
+.vp-play-btn:hover { background:#f1f5f9;border-color:#94a3b8; }
+.vp-play-btn.loading { opacity:0.5;pointer-events:none; }
+.vp-set-btn { padding:4px 10px;border-radius:6px;border:1px solid #3b82f6;background:#fff;color:#3b82f6;font-size:11px;font-weight:600;cursor:pointer;transition:all 0.15s;white-space:nowrap; }
+.vp-set-btn:hover { background:#3b82f6;color:#fff; }
+.vp-set-btn.is-active { background:#3b82f6;color:#fff;pointer-events:none; }
+.vp-cached-dot { width:7px;height:7px;border-radius:50%;background:#d1d5db;flex-shrink:0; }
+.vp-cached-dot.cached { background:#22c55e; }
+</style>
+
+<script>
+// ── Voice Preview Modal ───────────────────────────────────────────────────────
+let _vpAudio     = null;   // currently playing Audio object
+let _vpPlaying   = null;   // voice_id currently playing
+let _vpVoicesMap = {};     // vid -> label (populated on first open)
+
+const VP_GROUPS = [
+  { label: 'US Female', prefix: 'af_' },
+  { label: 'US Male',   prefix: 'am_' },
+  { label: 'UK Female', prefix: 'bf_' },
+  { label: 'UK Male',   prefix: 'bm_' },
+];
+
+function openVoicePreviewModal() {
+  openModal('voice-preview-modal');
+  renderVoicePreviewModal();
+}
+
+async function renderVoicePreviewModal() {
+  const container = document.getElementById('vp-groups');
+  container.innerHTML = '<div style="color:#94a3b8;font-size:13px;text-align:center;padding:20px">Loading voices…</div>';
+
+  let voicesData, cachedData;
+  try {
+    [voicesData, cachedData] = await Promise.all([
+      apiFetch('/api/kokoro/voices'),
+      apiFetch('/api/voice-sample/status'),
+    ]);
+  } catch(e) {
+    container.innerHTML = '<div style="color:#ef4444;font-size:13px;text-align:center">Failed to load voice data.</div>';
+    return;
+  }
+
+  const voices  = voicesData.voices || {};
+  _vpVoicesMap  = voices;
+  const cached  = new Set(cachedData.cached || []);
+  container.innerHTML = '';
+
+  VP_GROUPS.forEach(group => {
+    const keys = Object.keys(voices).filter(k => k.startsWith(group.prefix));
+    if (!keys.length) return;
+
+    const groupEl = document.createElement('div');
+    groupEl.innerHTML = `<div class="vp-group-title">${group.label}</div>`;
+
+    keys.forEach(vid => {
+      const label = voices[vid] || vid;
+      const isCached  = cached.has(vid);
+      const isActive  = (vid === currentVoice);
+      const row = document.createElement('div');
+      row.className = 'vp-voice-row' + (isActive ? ' active-voice' : '');
+      row.id = `vp-row-${vid}`;
+      row.innerHTML = `
+        <div class="vp-cached-dot ${isCached ? 'cached' : ''}" id="vp-dot-${vid}" title="${isCached ? 'Sample cached' : 'Sample not yet generated'}"></div>
+        <div class="vp-voice-name">${label}</div>
+        <button class="vp-play-btn" id="vp-play-${vid}" onclick="vpPlayVoice('${vid}')" title="Play sample">▶</button>
+        <button class="vp-set-btn ${isActive ? 'is-active' : ''}" id="vp-set-${vid}" onclick="vpSetVoice('${vid}')">${isActive ? '✓ Active' : 'Set Default'}</button>
+      `;
+      groupEl.appendChild(row);
+    });
+
+    container.appendChild(groupEl);
+  });
+}
+
+async function vpPlayVoice(vid) {
+  const btn = document.getElementById(`vp-play-${vid}`);
+  const statusEl = document.getElementById('vp-status');
+
+  // Stop any current playback
+  if (_vpAudio) {
+    _vpAudio.pause();
+    _vpAudio = null;
+    if (_vpPlaying) {
+      const oldBtn = document.getElementById(`vp-play-${_vpPlaying}`);
+      if (oldBtn) oldBtn.innerHTML = '▶';
+      _vpPlaying = null;
+    }
+  }
+
+  btn.classList.add('loading');
+  btn.innerHTML = '⏳';
+  statusEl.textContent = 'Generating sample…';
+
+  try {
+    const resp = await fetch(`/api/voice-sample/${vid}`);
+    if (!resp.ok) throw new Error('Server error');
+    const blob = await resp.blob();
+    const url  = URL.createObjectURL(blob);
+
+    _vpAudio   = new Audio(url);
+    _vpPlaying = vid;
+
+    btn.classList.remove('loading');
+    btn.innerHTML = '⏸';
+
+    // Mark dot as cached
+    const dot = document.getElementById(`vp-dot-${vid}`);
+    if (dot) { dot.classList.add('cached'); dot.title = 'Sample cached'; }
+
+    statusEl.textContent = '';
+
+    _vpAudio.onended = () => {
+      btn.innerHTML = '▶';
+      _vpPlaying = null;
+      _vpAudio   = null;
+      URL.revokeObjectURL(url);
+    };
+    _vpAudio.onerror = () => {
+      btn.innerHTML = '▶';
+      btn.classList.remove('loading');
+      _vpPlaying = null;
+      _vpAudio   = null;
+      statusEl.textContent = 'Playback error.';
+    };
+    _vpAudio.play();
+  } catch(e) {
+    btn.classList.remove('loading');
+    btn.innerHTML = '▶';
+    statusEl.textContent = 'Could not generate sample: ' + e.message;
+  }
+}
+
+function vpSetVoice(vid) {
+  // Update currentVoice and the main toolbar voice-select
+  currentVoice = vid;
+  const sel = document.getElementById('voice-select');
+  if (sel) sel.value = vid;
+
+  // Update all set buttons
+  document.querySelectorAll('.vp-set-btn').forEach(b => {
+    b.classList.remove('is-active');
+    b.textContent = 'Set Default';
+  });
+  document.querySelectorAll('.vp-voice-row').forEach(r => r.classList.remove('active-voice'));
+
+  const setBtn = document.getElementById(`vp-set-${vid}`);
+  if (setBtn) { setBtn.classList.add('is-active'); setBtn.textContent = '✓ Active'; }
+
+  const row = document.getElementById(`vp-row-${vid}`);
+  if (row) row.classList.add('active-voice');
+
+  document.getElementById('vp-status').textContent = `Default voice set to "${_vpVoicesMap[vid] || vid}".`;
+}
+</script>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────────
+let allTemplates     = [];   // raw data from server
+let filteredIds      = [];   // IDs currently visible
+let selectedIds      = new Set();
+let activeCategory   = '';
+let activeFreqs      = new Set();
+let activeAnswer     = '';
+let activeVideo      = '';
+let activeYoutube    = '';
+let activePart       = '';
+let activeBand       = '';
+let searchQuery      = '';
+let currentVoice     = 'af_heart';
+let activeJobs       = {};   // templateId -> { jobId, polling interval }
+let sidebarOpen      = true;
+let queueBodyOpen    = true;
+let queuePanelOpen   = false;
+let viewingSelection = false;
+let ytModalRecord    = null;   // current template record id shown in yt modal
+let cvJobInterval    = null;
+let cvDoneJobId      = null;
+
+// Category colors
+const CAT_COLORS = {
+  'Career & Work':            '#3b82f6',
+  'Communication & Conflict': '#ef4444',
+  'Cultural Adaptation':      '#f59e0b',
+  'Education & Learning':     '#8b5cf6',
+  'Environment & Community':  '#10b981',
+  'Family & Relationships':   '#ec4899',
+  'Finance & Money':          '#14b8a6',
+  'Food & Nutrition':         '#f97316',
+  'Health & Lifestyle':       '#06b6d4',
+  'Housing & Home':           '#6366f1',
+  'Parenting & Children':     '#d946ef',
+  'Personal Development':     '#22c55e',
+  'Shopping & Consumer':      '#a855f7',
+  'Social Life & Friendships':'#64748b',
+  'Sports & Recreation':      '#0ea5e9',
+  'Stress & Wellbeing':       '#84cc16',
+  'Technology & Digital':     '#6d28d9',
+  'Transportation':           '#78716c',
+  'Travel & Vacation':        '#f43f5e',
+  'Volunteer & Community':    '#15803d',
+};
+
+function catColor(c) { return CAT_COLORS[c] || '#94a3b8'; }
+
+// ── Bootstrap ────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', async () => {
+  await Promise.all([loadVoices(), loadTemplates(), initGlobalSettings()]);
+  document.getElementById('loading-overlay').style.display = 'none';
+  startQueuePolling();
+});
+
+// ── API helpers ───────────────────────────────────────────────────────────────
+async function apiFetch(url, opts = {}) {
+  const r = await fetch(url, {
+    headers: { 'Content-Type': 'application/json' },
+    ...opts
+  });
+  return r.json();
+}
+
+// ── Load voices ───────────────────────────────────────────────────────────────
+async function loadVoices() {
+  try {
+    const data = await apiFetch('/api/kokoro/voices');
+    // voices can be an object {key: label} or an array [key, ...]
+    const voicesRaw = data.voices || {};
+    const keys = Array.isArray(voicesRaw) ? voicesRaw : Object.keys(voicesRaw);
+    currentVoice = data.default_voice || (keys[0] || 'af_heart');
+
+    const sel     = document.getElementById('voice-select');
+    const cvVoice = document.getElementById('cv-voice');
+    keys.forEach(key => {
+      const label = Array.isArray(voicesRaw) ? key : (voicesRaw[key] || key);
+      const o1 = new Option(label, key);
+      const o2 = new Option(label, key);
+      if (key === currentVoice) { o1.selected = true; o2.selected = true; }
+      if (sel)     sel.add(o1);
+      if (cvVoice) cvVoice.add(o2);
+    });
+    if (sel) sel.addEventListener('change', () => { currentVoice = sel.value; });
+  } catch(e) {
+    console.warn('Could not load voices', e);
+  }
+}
+
+// ── Load all templates ────────────────────────────────────────────────────────
+async function loadTemplates() {
+  try {
+    const data = await apiFetch('/api/templates/list');
+    allTemplates = data.templates || [];
+    buildCategoryList();
+    buildPartList();
+    applyFilters();
+    updateStats();
+    updateFilterCounts();
+  } catch(e) {
+    console.error('Failed to load templates', e);
+    showToast('Failed to load templates from server.', 'error');
+  }
+}
+
+// ── Build category sidebar items ──────────────────────────────────────────────
+function buildCategoryList() {
+  const cats = [...new Set(allTemplates.map(t => t.category))].sort();
+
+  // Populate custom category dropdown options
+  const list = document.getElementById('cat-dropdown-list');
+  if (list) {
+    // Remove old injected options (keep the "All Categories" option)
+    list.querySelectorAll('[data-injected]').forEach(el => el.remove());
+    cats.forEach(cat => {
+      const div = document.createElement('div');
+      div.className = 'cat-opt';
+      div.dataset.val = cat;
+      div.dataset.injected = '1';
+      div.onclick = () => selectCatOpt(cat);
+      div.innerHTML = `<span class="cat-opt-dot" style="background:${catColor(cat)}"></span>${escHtml(cat)}`;
+      list.appendChild(div);
+    });
+  }
+
+  const container = document.getElementById('fsb-category');
+  // Remove old injected items
+  const old = container.querySelectorAll('[data-injected]');
+  old.forEach(el => el.remove());
+
+  cats.forEach(cat => {
+    const div = document.createElement('div');
+    div.className = 'filter-item';
+    div.dataset.val = cat;
+    div.dataset.injected = '1';
+    div.onclick = () => setCategory(cat);
+    div.innerHTML = `
+      <span class="filter-item-label">
+        <span class="category-dot" style="background:${catColor(cat)}"></span>${cat}
+      </span>
+      <span class="filter-item-count" id="cat-count-${encodeURIComponent(cat)}">0</span>
+    `;
+    container.appendChild(div);
+  });
+}
+
+// ── Build part sidebar items ──────────────────────────────────────────────────
+function buildPartList() {
+  const parts = [...new Set(allTemplates.map(t => t.part))].sort((a,b) => a-b);
+
+  // Sidebar
+  const container = document.getElementById('fsb-part');
+  container.innerHTML = '';
+  const allDiv = document.createElement('div');
+  allDiv.className = 'filter-item active';
+  allDiv.dataset.part = '';
+  allDiv.onclick = () => setPart('');
+  allDiv.innerHTML = `<span class="filter-item-label">All Parts</span><span class="filter-item-count">${allTemplates.length}</span>`;
+  container.appendChild(allDiv);
+  parts.forEach(part => {
+    const cnt = allTemplates.filter(t => t.part == part).length;
+    const div = document.createElement('div');
+    div.className = 'filter-item';
+    div.dataset.part = String(part);
+    div.onclick = () => setPart(String(part));
+    div.innerHTML = `<span class="filter-item-label">Part ${part}</span><span class="filter-item-count">${cnt}</span>`;
+    container.appendChild(div);
+  });
+
+  // Toolbar Part select — populate dynamically
+  const tbPart = document.getElementById('tb-part');
+  if (tbPart) {
+    tbPart.innerHTML = '<option value="">All Parts</option>';
+    parts.forEach(part => {
+      const o = new Option(`Part ${part}`, String(part));
+      tbPart.appendChild(o);
+    });
+  }
+}
+
+// ── Filter logic ──────────────────────────────────────────────────────────────
+function applyFilters() {
+  const q = searchQuery.toLowerCase();
+  let results = allTemplates.filter(t => {
+    if (viewingSelection && !selectedIds.has(t.id)) return false;
+    if (activePart && String(t.part) !== String(activePart)) return false;
+    if (activeBand && t.band !== activeBand) return false;
+    if (activeCategory && t.category !== activeCategory) return false;
+    if (activeFreqs.size > 0 && !activeFreqs.has(t.frequency_label)) return false;
+    if (activeAnswer === 'yes' && !t.answer) return false;
+    if (activeAnswer === 'no'  && t.answer)  return false;
+    if (activeVideo === 'generated'     && t.video_status !== 'generated')     return false;
+    if (activeVideo === 'not_generated' && t.video_status !== 'not_generated') return false;
+    if (activeYoutube === 'posted'     && t.youtube_status !== 'posted')     return false;
+    if (activeYoutube === 'not_posted' && t.youtube_status !== 'not_posted') return false;
+    if (q) {
+      const hay = (t.title + ' ' + t.question).toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+
+  filteredIds = results.map(t => t.id);
+  renderList(results);
+  updateFilterCounts();
+  updateShowingCount();
+  syncSelectAll();
+}
+
+function updateFilterCounts() {
+  // Category counts (count matches with active non-category filters applied)
+  const matchesNoCat = allTemplates.filter(t => {
+    if (activeFreqs.size > 0 && !activeFreqs.has(t.frequency_label)) return false;
+    if (activeAnswer === 'yes' && !t.answer) return false;
+    if (activeAnswer === 'no'  && t.answer)  return false;
+    if (activeVideo === 'generated'     && t.video_status !== 'generated')     return false;
+    if (activeVideo === 'not_generated' && t.video_status !== 'not_generated') return false;
+    if (activeYoutube === 'posted'     && t.youtube_status !== 'posted')     return false;
+    if (activeYoutube === 'not_posted' && t.youtube_status !== 'not_posted') return false;
+    if (searchQuery) {
+      const hay = (t.title + ' ' + t.question).toLowerCase();
+      if (!hay.includes(searchQuery.toLowerCase())) return false;
+    }
+    return true;
+  });
+
+  document.getElementById('cat-count-all').textContent = matchesNoCat.length;
+
+  const cats = [...new Set(allTemplates.map(t => t.category))];
+  cats.forEach(cat => {
+    const cnt = matchesNoCat.filter(t => t.category === cat).length;
+    const el = document.getElementById('cat-count-' + encodeURIComponent(cat));
+    if (el) el.textContent = cnt;
+  });
+
+  // Freq counts
+  const freqMap = {
+    'High Probability':        'freq-count-high',
+    'Medium-High Probability': 'freq-count-med-high',
+    'Medium Probability':      'freq-count-medium',
+    'Lower Probability':       'freq-count-lower',
+  };
+  Object.entries(freqMap).forEach(([label, elId]) => {
+    const cnt = allTemplates.filter(t => t.frequency_label === label).length;
+    const el = document.getElementById(elId);
+    if (el) el.textContent = cnt;
+  });
+
+  // Band counts
+  const bandAll = document.getElementById('band-count-all');
+  if (bandAll) bandAll.textContent = allTemplates.length;
+  ['9_10', '7_8', '5_6'].forEach(band => {
+    const el = document.getElementById('band-count-' + band);
+    if (el) el.textContent = allTemplates.filter(t => t.band === band).length;
+  });
+
+  // Skill counts (all current data is speaking)
+  const speakingEl = document.getElementById('skill-count-speaking');
+  if (speakingEl) speakingEl.textContent = allTemplates.length;
+}
+
+function updateStats() {
+  const total     = allTemplates.length;
+  const answers   = allTemplates.filter(t => t.answer).length;
+  const videos    = allTemplates.filter(t => t.video_status === 'generated').length;
+  const youtube   = allTemplates.filter(t => t.youtube_status === 'posted').length;
+  document.getElementById('stat-total').textContent   = total;
+  document.getElementById('stat-answers').textContent = answers;
+  document.getElementById('stat-videos').textContent  = videos;
+  document.getElementById('stat-youtube').textContent = youtube;
+}
+
+function updateShowingCount() {
+  document.getElementById('stat-showing').textContent = filteredIds.length;
+}
+
+// ── Custom category dropdown ──────────────────────────────────────────────────
+function toggleCatDropdown() {
+  const btn   = document.getElementById('cat-dropdown-btn');
+  const panel = document.getElementById('cat-dropdown-panel');
+  const isOpen = panel.classList.contains('open');
+  if (isOpen) {
+    closeCatDropdown();
+  } else {
+    btn.classList.add('open');
+    panel.classList.add('open');
+    const inp = document.getElementById('cat-dropdown-search');
+    if (inp) { inp.value = ''; filterCatOpts(''); inp.focus(); }
+  }
+}
+
+function closeCatDropdown() {
+  document.getElementById('cat-dropdown-btn').classList.remove('open');
+  document.getElementById('cat-dropdown-panel').classList.remove('open');
+}
+
+function selectCatOpt(val) {
+  closeCatDropdown();
+  setCategory(val);
+}
+
+function syncCatDropdown(val) {
+  // Update button label
+  const label = document.getElementById('cat-dropdown-label');
+  if (label) label.textContent = val || 'All Categories';
+  // Highlight active option
+  document.querySelectorAll('#cat-dropdown-list .cat-opt').forEach(el => {
+    el.classList.toggle('active', el.dataset.val === val);
+  });
+}
+
+function filterCatOpts(q) {
+  const lower = q.toLowerCase();
+  let visible = 0;
+  document.querySelectorAll('#cat-dropdown-list .cat-opt').forEach(el => {
+    const match = !lower || el.dataset.val.toLowerCase().includes(lower) || el.dataset.val === '';
+    el.style.display = match ? '' : 'none';
+    if (match) visible++;
+  });
+  const empty = document.getElementById('cat-dropdown-empty');
+  if (empty) empty.style.display = visible === 0 ? '' : 'none';
+}
+
+// Wire search input
+document.addEventListener('DOMContentLoaded', () => {
+  const inp = document.getElementById('cat-dropdown-search');
+  if (inp) inp.addEventListener('input', e => filterCatOpts(e.target.value));
+});
+
+// Close cat dropdown on outside click
+document.addEventListener('click', e => {
+  const wrap = document.getElementById('cat-dropdown-wrap');
+  if (wrap && !wrap.contains(e.target)) closeCatDropdown();
+});
+
+// ── Priority toolbar dropdown ─────────────────────────────────────────────────
+function togglePriDropdown() {
+  const btn   = document.getElementById('pri-dropdown-btn');
+  const panel = document.getElementById('pri-dropdown-panel');
+  if (panel.classList.contains('open')) {
+    closePriDropdown();
+  } else {
+    btn.classList.add('open');
+    panel.classList.add('open');
+  }
+}
+
+function closePriDropdown() {
+  document.getElementById('pri-dropdown-btn').classList.remove('open');
+  document.getElementById('pri-dropdown-panel').classList.remove('open');
+}
+
+function selectPriOpt(val) {
+  closePriDropdown();
+  // Update label
+  const label = document.getElementById('pri-dropdown-label');
+  if (label) {
+    const short = { 'High Probability': 'High', 'Medium-High Probability': 'Med-High',
+                    'Medium Probability': 'Medium', 'Lower Probability': 'Lower' };
+    label.textContent = val ? (short[val] || val) : 'All Priority';
+  }
+  // Highlight active option
+  document.querySelectorAll('.pri-opt').forEach(el => {
+    el.classList.toggle('active', el.dataset.val === val);
+  });
+  // Apply filter — single-select replaces the whole freq set
+  activeFreqs.clear();
+  if (val) activeFreqs.add(val);
+  // Sync sidebar priority items
+  document.querySelectorAll('#fsb-priority .filter-item').forEach(el => {
+    el.classList.toggle('active', activeFreqs.has(el.dataset.freq));
+  });
+  applyFilters();
+}
+
+// Sync toolbar priority dropdown when sidebar freq changes
+function syncPriDropdown() {
+  const label = document.getElementById('pri-dropdown-label');
+  const short = { 'High Probability': 'High', 'Medium-High Probability': 'Med-High',
+                  'Medium Probability': 'Medium', 'Lower Probability': 'Lower' };
+  if (activeFreqs.size === 1) {
+    const val = [...activeFreqs][0];
+    if (label) label.textContent = short[val] || val;
+    document.querySelectorAll('.pri-opt').forEach(el => {
+      el.classList.toggle('active', el.dataset.val === val);
+    });
+  } else {
+    if (label) label.textContent = 'All Priority';
+    document.querySelectorAll('.pri-opt').forEach(el => {
+      el.classList.toggle('active', el.dataset.val === '');
+    });
+  }
+}
+
+// Close on outside click
+document.addEventListener('click', e => {
+  const wrap = document.getElementById('pri-dropdown-wrap');
+  if (wrap && !wrap.contains(e.target)) closePriDropdown();
+});
+
+// ── Sidebar filter setters ────────────────────────────────────────────────────
+function setCategory(val) {
+  activeCategory = val;
+  // Highlight active sidebar item
+  document.querySelectorAll('#fsb-category .filter-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.val === val);
+  });
+  // Sync custom category dropdown button label + active state
+  syncCatDropdown(val);
+  applyFilters();
+}
+
+function toggleFreq(val) {
+  if (activeFreqs.has(val)) activeFreqs.delete(val);
+  else activeFreqs.add(val);
+  document.querySelectorAll('#fsb-priority .filter-item').forEach(el => {
+    el.classList.toggle('active', activeFreqs.has(el.dataset.freq));
+  });
+  syncPriDropdown();
+  applyFilters();
+}
+
+function setAnswer(val) {
+  activeAnswer = val;
+  document.querySelectorAll('#fsb-answer .filter-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.ans === val);
+  });
+  // Sync header toggle
+  const btn = document.getElementById('sf-ans');
+  if (btn) btn.dataset.state = val === 'yes' ? 'yes' : val === 'no' ? 'no' : '';
+  applyFilters();
+}
+
+function setVideo(val) {
+  activeVideo = val;
+  document.querySelectorAll('#fsb-video .filter-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.vid === val);
+  });
+  // Sync header toggle
+  const btn = document.getElementById('sf-vid');
+  if (btn) btn.dataset.state = val === 'generated' ? 'yes' : val === 'not_generated' ? 'no' : '';
+  applyFilters();
+}
+
+function setYoutube(val) {
+  activeYoutube = val;
+  document.querySelectorAll('#fsb-youtube .filter-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.yt === val);
+  });
+  // Sync header toggle
+  const btn = document.getElementById('sf-yt');
+  if (btn) btn.dataset.state = val === 'posted' ? 'yes' : val === 'not_posted' ? 'no' : '';
+  applyFilters();
+}
+
+// ── Status header column filter toggles ──────────────────────────────────────
+function cycleStatusFilter(type) {
+  const btn = document.getElementById(`sf-${type}`);
+  const cur = btn.dataset.state;
+  // cycle: '' → 'yes' → 'no' → ''
+  const next = cur === '' ? 'yes' : cur === 'yes' ? 'no' : '';
+
+  if (type === 'ans') {
+    setAnswer(next === 'yes' ? 'yes' : next === 'no' ? 'no' : '');
+  } else if (type === 'vid') {
+    setVideo(next === 'yes' ? 'generated' : next === 'no' ? 'not_generated' : '');
+  } else if (type === 'yt') {
+    setYoutube(next === 'yes' ? 'posted' : next === 'no' ? 'not_posted' : '');
+  }
+}
+
+function toggleSection(id) {
+  const header = document.querySelector(`#fs-${id} .filter-section-header`);
+  const body   = document.getElementById(`fsb-${id}`);
+  header.classList.toggle('open');
+  body.classList.toggle('hidden');
+}
+
+function setSkill(val) {
+  document.querySelectorAll('#fsb-skill .filter-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.skill === val);
+  });
+  // All current data is speaking — no filter change needed
+}
+
+function setPart(val) {
+  activePart = val;
+  document.querySelectorAll('#fsb-part .filter-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.part === val);
+  });
+  const tbPart = document.getElementById('tb-part');
+  if (tbPart && tbPart.value !== val) tbPart.value = val;
+  applyFilters();
+}
+
+function setBand(val) {
+  activeBand = val;
+  document.querySelectorAll('#fsb-band .filter-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.band === val);
+  });
+  const tbBand = document.getElementById('tb-band');
+  if (tbBand && tbBand.value !== val) tbBand.value = val;
+  applyFilters();
+}
+
+function setBandFromToolbar(val) { setBand(val); }
+function setPartFromToolbar(val) { setPart(val); }
+function setSkillFromToolbar(val) { setSkill(val); }
+
+// ── Search (sidebar + toolbar, synced) ───────────────────────────────────────
+let searchTimer = null;
+
+function handleSearchInput(val) {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => {
+    searchQuery = val.trim();
+    // Sync both inputs
+    const sidebar  = document.getElementById('search-input');
+    const toolbar  = document.getElementById('toolbar-search');
+    if (sidebar && sidebar.value !== val)  sidebar.value = val;
+    if (toolbar && toolbar.value !== val)  toolbar.value = val;
+    applyFilters();
+  }, 300);
+}
+
+document.getElementById('search-input').addEventListener('input', e => handleSearchInput(e.target.value));
+
+const _tbSearch = document.getElementById('toolbar-search');
+if (_tbSearch) _tbSearch.addEventListener('input', e => handleSearchInput(e.target.value));
+
+// ── Render list ───────────────────────────────────────────────────────────────
+function renderList(templates) {
+  const body = document.getElementById('list-body');
+  const empty = document.getElementById('empty-state');
+
+  if (templates.length === 0) {
+    empty.classList.add('visible');
+    // Remove all rows
+    body.querySelectorAll('.template-row').forEach(el => el.remove());
+    return;
+  }
+  empty.classList.remove('visible');
+
+  // Build a map of existing rows
+  const existing = new Map();
+  body.querySelectorAll('.template-row').forEach(el => {
+    existing.set(+el.dataset.id, el);
+  });
+
+  const ids = templates.map(t => t.id);
+  const idsSet = new Set(ids);
+
+  // Remove rows not in current filter
+  existing.forEach((el, id) => {
+    if (!idsSet.has(id)) el.remove();
+  });
+
+  // Insert/update rows in order
+  let prevEl = null;
+  templates.forEach(t => {
+    let row = existing.get(t.id);
+    if (!row) {
+      row = createRow(t);
+    } else {
+      updateRow(row, t);
+    }
+    // Maintain order
+    if (prevEl) {
+      if (row.previousElementSibling !== prevEl) {
+        body.insertBefore(row, prevEl.nextElementSibling);
+      }
+    } else {
+      if (body.firstElementChild !== row && body.firstElementChild !== empty) {
+        body.insertBefore(row, body.firstElementChild);
+      }
+    }
+    prevEl = row;
+  });
+}
+
+function freqBadgeClass(label) {
+  if (!label) return '';
+  const l = label.toLowerCase();
+  if (l.includes('high prob')) return 'freq-high';
+  if (l.includes('medium-high') || l.includes('med-high')) return 'freq-med-high';
+  if (l.includes('medium')) return 'freq-medium';
+  if (l.includes('lower')) return 'freq-lower';
+  return 'freq-medium';
+}
+
+function freqShortLabel(label) {
+  if (!label) return '';
+  if (label === 'High Probability') return 'High';
+  if (label === 'Medium-High Probability') return 'Med-High';
+  if (label === 'Medium Probability') return 'Medium';
+  if (label === 'Lower Probability') return 'Lower';
+  return label;
+}
+
+function createRow(t) {
+  const row = document.createElement('div');
+  row.className = 'template-row';
+  row.dataset.id = t.id;
+
+  const main = document.createElement('div');
+  main.className = 'row-main';
+  main.dataset.id = t.id;
+  main.onclick = (e) => {
+    if (e.target.closest('.row-cb') || e.target.closest('.row-actions')) return;
+    toggleRowExpand(t.id);
+  };
+
+  row.appendChild(main);
+
+  const detail = document.createElement('div');
+  detail.className = 'row-detail';
+  detail.id = `detail-${t.id}`;
+  row.appendChild(detail);
+
+  document.getElementById('list-body').appendChild(row);
+  fillRow(main, detail, t);
+  return row;
+}
+
+function updateRow(rowEl, t) {
+  const main   = rowEl.querySelector('.row-main');
+  const detail = rowEl.querySelector('.row-detail');
+  fillRow(main, detail, t);
+  rowEl.classList.toggle('selected', selectedIds.has(t.id));
+}
+
+function fillRow(main, detail, t) {
+  const hasAnswer = !!(t.answer && t.answer.trim());
+  const isGenerated = t.video_status === 'generated';
+  const isPosted    = t.youtube_status === 'posted';
+
+  // Check if this row has an active job
+  const activeJob = activeJobs[t.id];
+
+  main.innerHTML = `
+    <div class="row-cb">
+      <input type="checkbox" ${selectedIds.has(t.id) ? 'checked' : ''}
+        onclick="event.stopPropagation(); toggleSelect(${t.id}, this.checked)">
+    </div>
+    <div class="row-id">
+      <span class="row-id-val">${escHtml(t.template_id || '')}</span>
+      <span class="freq-badge ${freqBadgeClass(t.frequency_label)}">${freqShortLabel(t.frequency_label)}</span>
+    </div>
+    <div class="row-title-cell">
+      <div class="row-title">
+        <span class="expand-icon" id="expand-icon-${t.id}">▶</span>
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(t.title)}</span>
+      </div>
+      <div class="row-category">
+        <span class="category-dot" style="background:${catColor(t.category)}"></span>
+        ${escHtml(t.category)} &middot; Part ${t.part}
+      </div>
+    </div>
+    <div class="row-status">
+      <span class="status-icon ${hasAnswer ? 's-yes' : 's-no'}" title="${hasAnswer ? 'Has Answer' : 'No Answer'}">Answer</span>
+      <span class="status-icon ${isGenerated ? 's-vid-yes' : 's-no'}" title="${isGenerated ? 'Video Generated' : 'No Video'}">Video</span>
+      <span class="status-icon ${isPosted ? 's-yes' : 's-no'}" title="${isPosted ? 'Posted to YouTube' : 'Not Posted'}">YouTube</span>
+    </div>
+    <div class="row-actions" id="actions-${t.id}">
+      ${buildActions(t, activeJob)}
+    </div>
+  `;
+
+  // Fill detail
+  detail.innerHTML = `
+    <div class="row-detail-section">
+      <div class="row-detail-label">Question</div>
+      <div class="row-detail-text">${escHtml(t.question || '')}</div>
+    </div>
+    <div class="row-detail-section">
+      <div class="row-detail-label">Answer</div>
+      <div class="row-detail-text">${hasAnswer ? escHtml((t.answer || '').slice(0, 300)) + (t.answer.length > 300 ? '…' : '') : '<em>No answer yet</em>'}</div>
+    </div>
+    ${hasAnswer ? `<div style="margin-top:8px"><button class="action-btn btn-detail" onclick="openDetailModal(${t.id})">View Full Detail</button></div>` : ''}
+  `;
+}
+
+function buildActions(t, activeJob) {
+  const hasAnswer   = !!(t.answer && t.answer.trim());
+  const isGenerated = t.video_status === 'generated';
+  const isPosted    = t.youtube_status === 'posted';
+
+  let btns = '';
+
+  if (activeJob && !activeJob.done) {
+    const pct = activeJob.progress || 0;
+    btns += `<button class="action-btn btn-progress" disabled title="Generating…">
+      <div class="btn-progress-fill" style="width:${pct}%"></div>
+      <span>⏳ ${pct}%</span>
+    </button>`;
+  } else if (!hasAnswer) {
+    btns += `<button class="action-btn btn-no-answer" disabled title="No answer — cannot generate">—</button>`;
+  } else if (!isGenerated) {
+    btns += `<button class="action-btn btn-generate" onclick="event.stopPropagation();generateOne(${t.id})" title="Generate video">▶</button>`;
+  } else {
+    btns += `<button class="action-btn btn-open-folder" onclick="event.stopPropagation();openTemplateFolder(${t.id})" title="Open folder">📁</button>`;
+    btns += `<button class="action-btn btn-open-video"  onclick="event.stopPropagation();openTemplateVideo(${t.id})" title="Play video">▶</button>`;
+    if (!isPosted) {
+      btns += `<button class="action-btn btn-youtube" onclick="event.stopPropagation();openYouTubeModal(${t.id})" title="YouTube info">↑</button>`;
+    } else {
+      btns += `<span class="action-btn btn-posted" title="Posted to YouTube">✓</span>`;
+    }
+  }
+
+  btns += `<button class="action-btn btn-detail" onclick="event.stopPropagation();openDetailModal(${t.id})" title="View detail">👁</button>`;
+  if (isGenerated) {
+    btns += `<button class="action-btn btn-reset" onclick="event.stopPropagation();resetTemplate(${t.id})" title="Reset video">↺</button>`;
+  }
+
+  return btns;
+}
+
+// ── Row expand/collapse ───────────────────────────────────────────────────────
+const expandedRows = new Set();
+
+function toggleRowExpand(id) {
+  const detail = document.getElementById(`detail-${id}`);
+  const icon   = document.getElementById(`expand-icon-${id}`);
+  if (!detail) return;
+  if (expandedRows.has(id)) {
+    expandedRows.delete(id);
+    detail.classList.remove('open');
+    if (icon) icon.classList.remove('open');
+  } else {
+    expandedRows.add(id);
+    detail.classList.add('open');
+    if (icon) icon.classList.add('open');
+  }
+}
+
+// ── Selection ─────────────────────────────────────────────────────────────────
+function toggleSelect(id, checked) {
+  if (checked) selectedIds.add(id);
+  else selectedIds.delete(id);
+  const row = document.querySelector(`.template-row[data-id="${id}"]`);
+  if (row) row.classList.toggle('selected', checked);
+  updateSelectionUI();
+}
+
+function toggleSelectAll() {
+  const cb = document.getElementById('select-all');
+  if (cb.checked) {
+    // Select all visible that have answers
+    filteredIds.forEach(id => {
+      const t = allTemplates.find(x => x.id === id);
+      if (t && t.answer) selectedIds.add(id);
+    });
+  } else {
+    filteredIds.forEach(id => selectedIds.delete(id));
+  }
+  // Update all row checkboxes
+  document.querySelectorAll('.template-row').forEach(row => {
+    const id = +row.dataset.id;
+    const cbs = row.querySelectorAll('.row-cb input');
+    cbs.forEach(c => c.checked = selectedIds.has(id));
+    row.classList.toggle('selected', selectedIds.has(id));
+  });
+  updateSelectionUI();
+}
+
+function clearSelection() {
+  selectedIds.clear();
+  viewingSelection = false;
+  const viewBtn = document.getElementById('btn-view-selected');
+  if (viewBtn) { viewBtn.classList.remove('active'); viewBtn.textContent = '👁 View Selected'; }
+  document.querySelectorAll('.template-row').forEach(row => {
+    row.classList.remove('selected');
+    row.querySelectorAll('.row-cb input').forEach(c => c.checked = false);
+  });
+  updateSelectionUI();
+  syncSelectAll();
+  applyFilters();
+}
+
+function syncSelectAll() {
+  const cb = document.getElementById('select-all');
+  const visibleWithAnswer = filteredIds.filter(id => {
+    const t = allTemplates.find(x => x.id === id);
+    return t && t.answer;
+  });
+  cb.checked = visibleWithAnswer.length > 0 && visibleWithAnswer.every(id => selectedIds.has(id));
+}
+
+function updateSelectionUI() {
+  const n = selectedIds.size;
+  document.getElementById('sel-count-badge').textContent = n;
+  document.getElementById('sel-count').textContent = `${n} selected`;
+  document.getElementById('btn-generate-selected').disabled = n === 0;
+  const bar = document.getElementById('selection-bar');
+  bar.classList.toggle('visible', n > 0);
+  bar.classList.toggle('sidebar-collapsed', !sidebarOpen);
+  syncSelectAll();
+}
+
+// ── Selection mode ────────────────────────────────────────────────────────────
+function toggleViewSelected() {
+  viewingSelection = !viewingSelection;
+  const btn = document.getElementById('btn-view-selected');
+  btn.classList.toggle('active', viewingSelection);
+  btn.textContent = viewingSelection ? '✕ Exit View' : '👁 View Selected';
+  applyFilters();
+}
+
+// ── Generate actions ──────────────────────────────────────────────────────────
+async function generateOne(templateId) {
+  const t = allTemplates.find(x => x.id === templateId);
+  if (!t || !t.answer) { showToast('No answer — cannot generate.', 'error'); return; }
+
+  try {
+    const data = await apiFetch(`/api/templates/${templateId}/generate`, {
+      method: 'POST',
+      body: JSON.stringify({ voice: currentVoice })
+    });
+    if (data.error) { showToast('Error: ' + data.error, 'error'); return; }
+    activeJobs[templateId] = { jobId: data.job_id, progress: 0, done: false };
+    startPolling(templateId, data.job_id);
+    updateRowActions(templateId);
+    showToast(`Queued: ${t.title}`, 'info');
+  } catch(e) {
+    showToast('Network error generating video.', 'error');
+  }
+}
+
+async function generateSelected() {
+  const toGenerate = [...selectedIds].filter(id => {
+    const t = allTemplates.find(x => x.id === id);
+    return t && t.answer && !activeJobs[id];
+  });
+  if (toGenerate.length === 0) {
+    showToast('No eligible templates selected (need answers, not already queued).', 'info');
+    return;
+  }
+  let queued = 0;
+  for (const id of toGenerate) {
+    try {
+      const data = await apiFetch(`/api/templates/${id}/generate`, {
+        method: 'POST',
+        body: JSON.stringify({ voice: currentVoice })
+      });
+      if (!data.error) {
+        activeJobs[id] = { jobId: data.job_id, progress: 0, done: false };
+        startPolling(id, data.job_id);
+        queued++;
+      }
+    } catch(e) {}
+  }
+  // Refresh all action cells
+  toGenerate.forEach(id => updateRowActions(id));
+  showToast(`Queued ${queued} video(s).`, 'success');
+  clearSelection();
+}
+
+// ── Job polling ───────────────────────────────────────────────────────────────
+function startPolling(templateId, jobId) {
+  if (activeJobs[templateId] && activeJobs[templateId]._interval) {
+    clearInterval(activeJobs[templateId]._interval);
+  }
+  const interval = setInterval(async () => {
+    try {
+      const data = await apiFetch(`/status/${jobId}`);
+      const job = activeJobs[templateId];
+      if (!job) { clearInterval(interval); return; }
+
+      job.progress = data.progress || 0;
+      job.step     = data.step || '';
+      job.done     = data.done;
+
+      updateRowActions(templateId);
+
+      if (data.done) {
+        clearInterval(interval);
+        job.done = true;
+        if (!data.error) {
+          // Small delay to ensure DB write has committed before we read it back
+          await new Promise(r => setTimeout(r, 300));
+          await refreshTemplate(templateId);
+          showToast('Video ready!', 'success');
+        } else {
+          showToast(`Error generating video: ${data.error}`, 'error');
+          delete activeJobs[templateId];
+          updateRowActions(templateId);
+        }
+      }
+    } catch(e) {
+      console.warn('Poll error', e);
+    }
+  }, 1500);
+  activeJobs[templateId]._interval = interval;
+}
+
+async function refreshTemplate(templateId) {
+  try {
+    const data = await apiFetch(`/api/templates/${templateId}`);
+    if (data.error) return;
+    const idx = allTemplates.findIndex(t => t.id === templateId);
+    if (idx >= 0) allTemplates[idx] = data;
+    delete activeJobs[templateId];
+    updateStats();
+    // Re-render this row
+    const rowEl = document.querySelector(`.template-row[data-id="${templateId}"]`);
+    if (rowEl) {
+      const main   = rowEl.querySelector('.row-main');
+      const detail = rowEl.querySelector('.row-detail');
+      fillRow(main, detail, data);
+    }
+  } catch(e) {
+    console.warn('Could not refresh template', e);
+    delete activeJobs[templateId];
+  }
+}
+
+function updateRowActions(templateId) {
+  const actionsDiv = document.getElementById(`actions-${templateId}`);
+  if (!actionsDiv) return;
+  const t = allTemplates.find(x => x.id === templateId);
+  if (!t) return;
+  actionsDiv.innerHTML = buildActions(t, activeJobs[templateId]);
+
+  // Also update status dots
+  const main = actionsDiv.closest('.row-main');
+  if (main) {
+    const hasAnswer   = !!(t.answer && t.answer.trim());
+    const isGenerated = t.video_status === 'generated';
+    const isPosted    = t.youtube_status === 'posted';
+    const statusDiv = main.querySelector('.row-status');
+    if (statusDiv) {
+      statusDiv.innerHTML = `
+        <span class="status-icon ${hasAnswer ? 's-yes' : 's-no'}" title="${hasAnswer ? 'Has Answer' : 'No Answer'}">Answer</span>
+        <span class="status-icon ${isGenerated ? 's-vid-yes' : 's-no'}" title="${isGenerated ? 'Video Generated' : 'No Video'}">Video</span>
+        <span class="status-icon ${isPosted ? 's-yes' : 's-no'}" title="${isPosted ? 'Posted to YouTube' : 'Not Posted'}">YouTube</span>
+      `;
+    }
+  }
+}
+
+// ── Open folder / video helpers ───────────────────────────────────────────────
+async function openTemplateFolder(templateId) {
+  try {
+    const data = await apiFetch(`/api/templates/${templateId}/open-folder`, { method: 'POST' });
+    if (data.error) showToast('Cannot open folder: ' + data.error, 'error');
+  } catch(e) { showToast('Network error opening folder.', 'error'); }
+}
+
+async function openTemplateVideo(templateId) {
+  try {
+    const data = await apiFetch(`/api/templates/${templateId}/open-video`, { method: 'POST' });
+    if (data.error) showToast('Cannot open video: ' + data.error, 'error');
+  } catch(e) { showToast('Network error opening video.', 'error'); }
+}
+
+async function openJobFolder(jobId) {
+  try {
+    const data = await apiFetch(`/api/jobs/${jobId}/open-folder`, { method: 'POST' });
+    if (data.error) showToast('Cannot open folder: ' + data.error, 'error');
+  } catch(e) { showToast('Network error.', 'error'); }
+}
+
+async function openJobVideo(jobId) {
+  try {
+    const data = await apiFetch(`/api/jobs/${jobId}/open-video`, { method: 'POST' });
+    if (data.error) showToast('Cannot open video: ' + data.error, 'error');
+  } catch(e) { showToast('Network error.', 'error'); }
+}
+
+// ── Reset template ────────────────────────────────────────────────────────────
+async function resetTemplate(templateId) {
+  if (!confirm('Reset this template? This will delete the generated video file.')) return;
+  try {
+    await apiFetch(`/api/templates/${templateId}/reset`, { method: 'POST' });
+    await refreshTemplate(templateId);
+    showToast('Template reset.', 'success');
+  } catch(e) {
+    showToast('Error resetting template.', 'error');
+  }
+}
+
+// ── Detail modal ──────────────────────────────────────────────────────────────
+function openDetailModal(templateId) {
+  const t = allTemplates.find(x => x.id === templateId);
+  if (!t) return;
+
+  document.getElementById('detail-title').textContent = t.title;
+  document.getElementById('detail-meta').textContent  = `${t.category} · ${t.template_id || ''} · Part ${t.part}`;
+  document.getElementById('detail-question').textContent = t.question || '';
+
+  const hasAnswer = !!(t.answer && t.answer.trim());
+  const ansEl = document.getElementById('detail-answer');
+  if (hasAnswer) {
+    ansEl.textContent = t.answer;
+    ansEl.className = 'detail-text';
+  } else {
+    ansEl.innerHTML = '<em>No answer yet — this question cannot be generated until an answer is added.</em>';
+    ansEl.className = 'detail-text muted';
+  }
+
+  // Vocab
+  let vocab = [];
+  try {
+    vocab = typeof t.vocabulary === 'string' ? JSON.parse(t.vocabulary) : (t.vocabulary || []);
+  } catch(e) { vocab = []; }
+
+  const vocabSection = document.getElementById('detail-vocab-section');
+  const vocabGrid    = document.getElementById('detail-vocab');
+  if (vocab.length > 0) {
+    vocabSection.style.display = '';
+    vocabGrid.innerHTML = vocab.map(v => `
+      <div class="vocab-card">
+        <div class="vocab-word">${escHtml(v.word || '')}</div>
+        <div class="vocab-type">${escHtml(v.type || 'word')}</div>
+        <div class="vocab-def">${escHtml(v.definition || '')}</div>
+      </div>
+    `).join('');
+  } else {
+    vocabSection.style.display = 'none';
+  }
+
+  openModal('modal-detail');
+}
+
+// ── YouTube modal ─────────────────────────────────────────────────────────────
+async function openYouTubeModal(templateId) {
+  ytModalRecord = templateId;
+  const t = allTemplates.find(x => x.id === templateId);
+  document.getElementById('yt-modal-meta').textContent = t ? `${t.category} · ${t.template_id || ''}` : '';
+  document.getElementById('yt-modal-loading').style.display = '';
+  document.getElementById('yt-modal-content').style.display = 'none';
+
+  openModal('modal-youtube');
+
+  try {
+    const data = await apiFetch(`/api/templates/${templateId}/youtube-info`);
+    document.getElementById('yt-title-text').textContent = data.title || '';
+    document.getElementById('yt-desc-text').textContent  = data.description || '';
+    document.getElementById('yt-tags-text').textContent  = data.tags || '';
+
+    const alreadyPosted = document.getElementById('yt-already-posted');
+    const markForm      = document.getElementById('yt-mark-form');
+    if (data.youtube_url) {
+      alreadyPosted.style.display = '';
+      const link = document.getElementById('yt-posted-link');
+      link.href = data.youtube_url;
+      link.textContent = data.youtube_url;
+      markForm.style.display = 'none';
+    } else {
+      alreadyPosted.style.display = 'none';
+      markForm.style.display = '';
+    }
+
+    document.getElementById('yt-modal-loading').style.display = 'none';
+    document.getElementById('yt-modal-content').style.display = '';
+  } catch(e) {
+    document.getElementById('yt-modal-loading').textContent = 'Error loading YouTube info.';
+  }
+}
+
+async function markPosted() {
+  if (!ytModalRecord) return;
+  const url = document.getElementById('yt-url-input').value.trim();
+  const vid = document.getElementById('yt-vid-input').value.trim();
+  if (!url) { showToast('Please enter a YouTube URL.', 'error'); return; }
+  try {
+    await apiFetch(`/api/templates/${ytModalRecord}/mark-posted`, {
+      method: 'POST',
+      body: JSON.stringify({ youtube_url: url, youtube_video_id: vid || null })
+    });
+    await refreshTemplate(ytModalRecord);
+    showToast('Marked as posted!', 'success');
+    closeModal('modal-youtube');
+  } catch(e) {
+    showToast('Error marking as posted.', 'error');
+  }
+}
+
+async function unmarkPosted() {
+  if (!ytModalRecord) return;
+  if (!confirm('Remove posted status?')) return;
+  try {
+    await apiFetch(`/api/templates/${ytModalRecord}/unmark-posted`, { method: 'POST' });
+    await refreshTemplate(ytModalRecord);
+    showToast('Unposted.', 'info');
+    closeModal('modal-youtube');
+  } catch(e) {
+    showToast('Error.', 'error');
+  }
+}
+
+async function copyField(elementId, btn) {
+  const text = document.getElementById(elementId).textContent;
+  try {
+    await navigator.clipboard.writeText(text);
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+  } catch(e) {
+    showToast('Could not copy to clipboard.', 'error');
+  }
+}
+
+// ── Custom video modal ────────────────────────────────────────────────────────
+function openCustomModal() {
+  document.getElementById('cv-progress').classList.remove('visible');
+  document.getElementById('cv-submit-btn').disabled = false;
+  openModal('modal-custom');
+}
+
+async function submitCustomVideo() {
+  const question = document.getElementById('cv-question').value.trim();
+  const answer   = document.getElementById('cv-answer').value.trim();
+  const title    = document.getElementById('cv-title').value.trim();
+  const category = document.getElementById('cv-category').value;
+  const band     = document.getElementById('cv-band').value;
+  const voice    = document.getElementById('cv-voice').value || currentVoice;
+  const vocabRaw = document.getElementById('cv-vocab').value.trim();
+
+  if (!question) { showToast('Question is required.', 'error'); return; }
+  if (!answer)   { showToast('Answer is required.', 'error'); return; }
+
+  let vocab = [];
+  if (vocabRaw) {
+    try { vocab = JSON.parse(vocabRaw); }
+    catch(e) { showToast('Vocabulary must be valid JSON.', 'error'); return; }
+  }
+
+  document.getElementById('cv-submit-btn').disabled = true;
+  const progressDiv = document.getElementById('cv-progress');
+  progressDiv.classList.add('visible');
+  document.getElementById('cv-progress-label').textContent = 'Queued…';
+  document.getElementById('cv-progress-fill').style.width = '0%';
+  document.getElementById('cv-step-text').textContent = '';
+
+  try {
+    const data = await apiFetch('/generate-video', {
+      method: 'POST',
+      body: JSON.stringify({ question, answer, title: title || category, category, band, voice, vocab, task_num: 1 })
+    });
+    if (data.error) { showToast('Error: ' + data.error, 'error'); return; }
+
+    cvDoneJobId = null;
+    if (cvJobInterval) clearInterval(cvJobInterval);
+    cvJobInterval = setInterval(async () => {
+      try {
+        const st = await apiFetch(`/status/${data.job_id}`);
+        document.getElementById('cv-progress-fill').style.width = (st.progress || 0) + '%';
+        document.getElementById('cv-step-text').textContent = st.step || '';
+        document.getElementById('cv-progress-label').textContent = `Progress: ${st.progress || 0}%`;
+        if (st.done) {
+          clearInterval(cvJobInterval);
+          cvJobInterval = null;
+          if (st.error) {
+            showToast('Error: ' + st.error, 'error');
+            document.getElementById('cv-progress-label').textContent = '✗ Error';
+          } else {
+            cvDoneJobId = data.job_id;
+            showToast('Custom video generated!', 'success');
+            document.getElementById('cv-progress-label').innerHTML =
+              '✓ Done! &nbsp;' +
+              `<button class="action-btn btn-open-folder" style="font-size:12px;padding:3px 9px" onclick="openJobFolder('${data.job_id}')">📁 Folder</button> ` +
+              `<button class="action-btn btn-open-video"  style="font-size:12px;padding:3px 9px" onclick="openJobVideo('${data.job_id}')">▶ Play</button>`;
+          }
+          document.getElementById('cv-submit-btn').disabled = false;
+        }
+      } catch(e) {}
+    }, 1500);
+  } catch(e) {
+    showToast('Network error.', 'error');
+    document.getElementById('cv-submit-btn').disabled = false;
+  }
+}
+
+// ── Queue panel ───────────────────────────────────────────────────────────────
+function toggleQueuePanel() {
+  queuePanelOpen = !queuePanelOpen;
+  document.getElementById('queue-panel').style.display = queuePanelOpen ? '' : 'none';
+}
+
+function toggleQueueBody() {
+  queueBodyOpen = !queueBodyOpen;
+  document.getElementById('queue-body').style.display = queueBodyOpen ? '' : 'none';
+  document.getElementById('queue-toggle-arrow').classList.toggle('up', queueBodyOpen);
+}
+
+function startQueuePolling() {
+  setInterval(async () => {
+    try {
+      const data = await apiFetch('/api/queue');
+      renderQueuePanel(data);
+    } catch(e) {}
+  }, 3000);
+}
+
+function renderQueuePanel(data) {
+  const jobs    = data.jobs || [];
+  const pending = data.pending || 0;
+
+  const badge = document.getElementById('queue-badge');
+  if (pending > 0) {
+    badge.textContent = pending;
+    badge.classList.add('visible');
+  } else {
+    badge.classList.remove('visible');
+  }
+
+  document.getElementById('queue-title').textContent = `Queue (${pending} active)`;
+
+  const body = document.getElementById('queue-body');
+  if (jobs.length === 0) {
+    body.innerHTML = '<div class="queue-empty">No active jobs</div>';
+    return;
+  }
+
+  body.innerHTML = jobs.map(j => {
+    const cls = j.status === 'done' ? 'done' : j.status === 'error' ? 'error' :
+                j.status === 'running' ? 'running' : 'queued';
+    const fillCls = j.status === 'done' ? 'done' : j.status === 'error' ? 'error' : '';
+    return `
+      <div class="queue-job">
+        <div class="queue-job-header">
+          <span class="queue-job-label">${escHtml(j.label || j.job_id)}</span>
+          <span class="queue-job-status qs-${cls}">${j.status}</span>
+        </div>
+        <div class="queue-job-step">${escHtml(j.step || '')}</div>
+        <div class="queue-progress-bar">
+          <div class="queue-progress-fill ${fillCls}" style="width:${j.progress || 0}%"></div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ── Sidebar toggle ────────────────────────────────────────────────────────────
+function toggleSidebar() {
+  sidebarOpen = !sidebarOpen;
+  document.getElementById('sidebar').classList.toggle('collapsed', !sidebarOpen);
+  const bar = document.getElementById('selection-bar');
+  bar.classList.toggle('sidebar-collapsed', !sidebarOpen);
+}
+
+// ── Modal helpers ─────────────────────────────────────────────────────────────
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+  if (id === 'font-size-modal') saveFontScales(false);
+}
+
+// Close on overlay click
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) {
+      const id = overlay.id;
+      overlay.classList.remove('open');
+      if (id === 'font-size-modal') saveFontScales(false);
+    }
+  });
+});
+
+// Close on ESC — save font scales if that modal was open
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  const open = document.querySelector('.modal-overlay.open');
+  if (!open) return;
+  open.classList.remove('open');
+  if (open.id === 'font-size-modal') saveFontScales(false);
+});
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+let toastTimer = null;
+function showToast(msg, type = 'info') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `${type} visible`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('visible'), 3500);
+}
+
+// ── Per-Section Font Scales ────────────────────────────────────────────────────
+const FS_SECTION_NAMES = { 1:'Question', 2:'Answer', 3:'Vocabulary', 4:'Shadowing', 5:'Final Review' };
+let perSectionScales  = { 1:1.0, 2:1.0, 3:1.0, 4:1.0, 5:1.0 };
+let _fsPrevSec        = 1;
+let _fsPreviewTimer   = null;
+
+async function initGlobalSettings() {
+  try {
+    const data = await apiFetch('/api/config/font-scales');
+    for (let i = 1; i <= 5; i++) {
+      perSectionScales[i] = parseFloat(data[i] ?? data[String(i)] ?? 1.0);
+    }
+  } catch(e) { /* use defaults */ }
+}
+
+function _fmtScale(v) {
+  return v.toFixed(2).replace(/\.?0+$/, '') + '×';
+}
+
+function openFontSizeModal() {
+  // Build sliders
+  const sliderContainer = document.getElementById('fs-modal-sliders');
+  sliderContainer.innerHTML = '';
+  for (let s = 1; s <= 5; s++) {
+    const pct = Math.round(perSectionScales[s] * 100);
+    sliderContainer.insertAdjacentHTML('beforeend', `
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+        <span style="font-size:12px;font-weight:600;color:#374151;width:110px;flex-shrink:0">§${s} ${FS_SECTION_NAMES[s]}</span>
+        <input type="range" min="50" max="200" step="5" value="${pct}"
+               style="flex:1;accent-color:#3b82f6;cursor:pointer"
+               oninput="onFsSlider(${s}, this.value)">
+        <span id="fs-val-${s}" style="font-size:12px;font-weight:700;color:#1e293b;width:38px;text-align:right;flex-shrink:0">${pct}%</span>
+      </div>`);
+  }
+  // Build preview tabs
+  const tabsContainer = document.getElementById('fs-modal-tabs');
+  tabsContainer.innerHTML = '';
+  for (let s = 1; s <= 5; s++) {
+    tabsContainer.insertAdjacentHTML('beforeend',
+      `<button onclick="switchFsTab(${s})" id="fs-tab-${s}"
+               style="padding:3px 10px;border-radius:99px;border:1px solid ${s===_fsPrevSec?'#3b82f6':'#e2e8f0'};
+                      background:${s===_fsPrevSec?'#3b82f6':'#f8fafc'};color:${s===_fsPrevSec?'#fff':'#64748b'};
+                      font-size:11px;cursor:pointer;transition:all .12s">${s}·${FS_SECTION_NAMES[s].split(' ')[0]}</button>`
+    );
+  }
+  _fsPrevSec = 1;
+  document.getElementById('fs-modal-status').textContent = '';
+  refreshFsPreview();
+  openModal('font-size-modal');
+}
+
+function switchFsTab(sec) {
+  _fsPrevSec = sec;
+  document.querySelectorAll('[id^="fs-tab-"]').forEach(btn => {
+    const s = parseInt(btn.id.replace('fs-tab-',''));
+    btn.style.background    = s === sec ? '#3b82f6' : '#f8fafc';
+    btn.style.borderColor   = s === sec ? '#3b82f6' : '#e2e8f0';
+    btn.style.color         = s === sec ? '#fff'    : '#64748b';
+  });
+  refreshFsPreview();
+}
+
+function onFsSlider(sec, pctStr) {
+  const pct = parseInt(pctStr, 10);
+  perSectionScales[sec] = pct / 100;
+  document.getElementById('fs-val-' + sec).textContent = pct + '%';
+  clearTimeout(_fsPreviewTimer);
+  _fsPreviewTimer = setTimeout(() => {
+    if (_fsPrevSec === sec) refreshFsPreview();
+    saveFontScales(false);   // auto-save so generate picks up the new value
+  }, 600);
+}
+
+function refreshFsPreview() {
+  const sec  = _fsPrevSec;
+  const fs   = perSectionScales[sec].toFixed(2);
+  const img  = document.getElementById('fs-modal-prev-img');
+  const load = document.getElementById('fs-modal-prev-loading');
+  img.style.display = 'none';
+  load.style.display = 'flex';
+  load.textContent = 'Loading…';
+  img.src = `/api/patterns/frame?category=career_work&band=9_10&freq=medium&section=${sec}&font_scale=${fs}&seed=42&t=${Date.now()}`;
+  document.getElementById('fs-modal-prev-label').textContent =
+    `Section ${sec} · ${FS_SECTION_NAMES[sec]} — ${_fmtScale(parseFloat(fs))}`;
+}
+
+async function saveFontScales(showConfirm) {
+  const body = {};
+  for (let i = 1; i <= 5; i++) body[String(i)] = perSectionScales[i];
+  try {
+    await apiFetch('/api/config/font-scales', { method: 'POST', body: JSON.stringify(body) });
+    if (showConfirm) {
+      const st = document.getElementById('fs-modal-status');
+      st.textContent = '✓ Saved as default';
+      setTimeout(() => { st.textContent = ''; }, 2500);
+    }
+  } catch(e) { console.warn('Font scale save failed', e); }
+}
+
+function resetFontScales() {
+  for (let s = 1; s <= 5; s++) {
+    perSectionScales[s] = 1.0;
+    const slider = document.querySelector(`#fs-modal-sliders input[oninput="onFsSlider(${s}, this.value)"]`);
+    if (slider) slider.value = 100;
+    const val = document.getElementById('fs-val-' + s);
+    if (val) val.textContent = '100%';
+  }
+  refreshFsPreview();
+  saveFontScales(false);
+}
+
+// ── Utility ───────────────────────────────────────────────────────────────────
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+</script>
+</body>
+</html>

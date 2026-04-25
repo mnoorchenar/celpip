@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}Shadowing Practice — CELPIP Studio{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/shadowing.css') }}">
+
+<div class="shadow-layout">
+
+  <!-- Top bar -->
+  <div class="shadow-topbar">
+    <button class="btn-back" onclick="window.location.href='/'">&#8592; Back to Studio</button>
+    <div class="shadow-topbar-title">&#127897; Shadowing Practice</div>
+    <div class="shadow-topbar-meta" id="topMeta"></div>
+  </div>
+
+  <!-- Empty state -->
+  <div id="shadowEmpty" class="shadow-empty" style="display:none">
+    <div class="shadow-empty-icon">&#127897;</div>
+    <h2>No content loaded</h2>
+    <p>Go back to the Studio, load a JSON file, then click <strong>Practice Shadowing</strong>.</p>
+    <button class="btn-gen" onclick="window.location.href='/'">&#8592; Go to Studio</button>
+  </div>
+
+  <!-- Loaded state — single column, centred -->
+  <div id="shadowLoaded" class="shadow-loaded" style="display:none">
+
+    <!-- Config row -->
+    <div class="shadow-config">
+      <div class="config-item">
+        <label class="config-label">Voice</label>
+        <select class="voice-select" id="voiceSelect">
+          {% for vid, vlabel in voices.items() %}
+          <option value="{{ vid }}" {% if vid == default_voice %}selected{% endif %}>{{ vlabel }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="config-item">
+        <label class="config-label">Reps per sentence</label>
+        <div class="slider-row">
+          <input type="range" class="speed-slider" id="repSlider" min="0" max="10" step="1" value="1">
+          <span class="speed-val" id="repVal">1×</span>
+        </div>
+      </div>
+
+      <div class="config-item">
+        <label class="config-label">Playback speed</label>
+        <div class="slider-row">
+          <input type="range" class="speed-slider" id="speedSlider" min="0.5" max="2" step="0.1" value="1">
+          <span class="speed-val" id="speedVal">1.0×</span>
+        </div>
+      </div>
+
+      <div class="config-item">
+        <label class="config-label">Pause / word</label>
+        <div class="slider-row">
+          <input type="range" class="speed-slider" id="pauseSlider" min="0" max="2" step="0.2" value="1">
+          <span class="speed-val" id="pauseVal">1.0s</span>
+        </div>
+      </div>
+
+      <button class="btn-gen" id="genBtn">&#9654;&nbsp; Generate Audio</button>
+      <span class="gen-error" id="genError" style="display:none"></span>
+    </div>
+
+    <!-- Big sentence display -->
+    <div class="shadow-stage">
+
+      <div class="shadow-sent-counter" id="sentCounter"></div>
+
+      <div class="shadow-sentence-box" id="sentBox">
+        Press <em>Generate Audio</em> to begin.
+      </div>
+
+      <div class="shadow-rep-indicator" id="repIndicator"></div>
+
+      <div class="shadow-controls">
+        <button class="ctrl-btn" id="prevBtn" disabled title="Previous sentence">&#9664;&#9664;</button>
+        <button class="ctrl-btn ctrl-btn-play" id="playPauseBtn" disabled title="Play / Pause">&#9654;</button>
+        <button class="ctrl-btn" id="nextBtn" disabled title="Next sentence">&#9654;&#9654;</button>
+      </div>
+
+      <div class="shadow-done-msg" id="doneMsg">
+        &#10003;&nbsp; All sentences done! Close this tab or go back to record your own voice.
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/shadowing.js') }}"></script>
+{% endblock %}

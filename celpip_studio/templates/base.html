@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}CELPIP Practice Studio{% endblock %}</title>
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <nav class="top-nav">
+    <a class="nav-logo" href="/">&#9654; CELPIP <span>Practice Studio</span></a>
+    <a class="nav-link {% if request.endpoint == 'browse' %}active{% endif %}" href="/browse">Browse Sessions</a>
+    <a class="nav-link {% if request.endpoint == 'video_preview' %}active{% endif %}" href="/video-preview">Video Preview</a>
+    <a class="nav-link {% if request.endpoint == 'template_library' %}active{% endif %}" href="/templates">Templates</a>
+    <a class="nav-link {% if request.endpoint == 'margin_tuner' %}active{% endif %}" href="/margin-tuner">Margins</a>
+    <span class="nav-queue-badge hidden" id="navQueueBadge" title="Videos in queue">
+      &#9654; <span id="navQueueCount">0</span> in queue
+    </span>
+  </nav>
+
+  {% block content %}{% endblock %}
+
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

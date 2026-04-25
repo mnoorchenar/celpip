@@ -1,0 +1,36 @@
+{
+  "speaking": {
+    "part1": {
+      "name": "Giving Advice",
+      "categories": ["Career & Work", "Health & Lifestyle", "Family & Relationships"]
+    },
+    "part2": {
+      "name": "Personal Experience",
+      "categories": []
+    },
+    "part3": {
+      "name": "Describing a Scene",
+      "categories": []
+    },
+    "part4": {
+      "name": "Making Predictions",
+      "categories": []
+    },
+    "part5": {
+      "name": "Comparing and Persuading",
+      "categories": []
+    },
+    "part6": {
+      "name": "Dealing With a Difficult Situation",
+      "categories": []
+    },
+    "part7": {
+      "name": "Expressing Opinions",
+      "categories": []
+    },
+    "part8": {
+      "name": "Describing an Unusual Situation",
+      "categories": []
+    }
+  }
+}

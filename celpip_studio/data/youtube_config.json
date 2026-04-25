@@ -1,0 +1,74 @@
+{
+  "channel": {
+    "default_language": "en",
+    "default_audio_language": "en",
+    "category_id": "27",
+    "license": "youtube",
+    "made_for_kids": false,
+    "embeddable": true,
+    "privacy_status": "public"
+  },
+
+  "title_template": "CELPIP Speaking Part {task_num:02d} · {band_label} | {topic}",
+
+  "description": {
+    "intro": [
+      "Master CELPIP Speaking with this full practice session!",
+      "Watch, listen, and shadow your way to a higher band score."
+    ],
+    "sections_header": "WHAT'S IN THIS VIDEO",
+    "sections": [
+      "Question & Preparation Time",
+      "Full Model Answer ({band_label})",
+      "Vocabulary Breakdown",
+      "Shadowing Practice (2 reps per sentence)",
+      "Final Review"
+    ],
+    "tips": [
+      "Pause after each sentence and repeat out loud.",
+      "Use the shadowing section to improve fluency and pronunciation.",
+      "Review the vocabulary cards to expand your range."
+    ],
+    "call_to_action": "Subscribe for daily CELPIP Speaking practice videos and hit the bell so you never miss one!",
+    "tutoring": [
+      "🎓 Looking for a personal CELPIP tutor?",
+      "Get one-on-one coaching tailored to your speaking level at:",
+      "👉 https://tutordice.com"
+    ],
+    "hashtags": [
+      "#CELPIP", "#CELPIPSpeaking", "#EnglishPractice",
+      "#CanadaImmigration", "#PR", "#IELTS", "#EnglishFluency"
+    ],
+    "disclaimer": [
+      "DISCLAIMER: This video is created for educational and practice purposes only.",
+      "We are not affiliated with, endorsed by, or connected to CELPIP® or Paragon Testing Enterprises.",
+      "Sample answers and band scores shown are illustrative and not guaranteed to be accurate.",
+      "Individual exam results may vary. This content does not constitute professional language instruction.",
+      "CELPIP® is a registered trademark of Paragon Testing Enterprises."
+    ]
+  },
+
+  "tags": {
+    "base": [
+      "CELPIP", "CELPIP speaking", "CELPIP practice", "CELPIP model answer",
+      "CELPIP speaking tips", "English speaking practice", "Canada immigration English",
+      "CELPIP shadowing", "English shadowing technique", "CELPIP 2025",
+      "Canada PR test", "CELPIP score", "spoken English fluency"
+    ],
+    "per_band": {
+      "7_8":  ["CELPIP band 7", "CELPIP band 8", "CELPIP intermediate"],
+      "9_10": ["CELPIP band 9", "CELPIP band 10", "CELPIP advanced"],
+      "11_12":["CELPIP band 11", "CELPIP band 12", "CELPIP expert", "CELPIP perfect score"]
+    },
+    "per_task": {
+      "1": ["CELPIP task 1", "giving advice CELPIP"],
+      "2": ["CELPIP task 2", "personal experience CELPIP"],
+      "3": ["CELPIP task 3", "describing a scene CELPIP"],
+      "4": ["CELPIP task 4", "making predictions CELPIP"],
+      "5": ["CELPIP task 5", "comparing and persuading CELPIP"],
+      "6": ["CELPIP task 6", "difficult situation CELPIP"],
+      "7": ["CELPIP task 7", "expressing opinions CELPIP"],
+      "8": ["CELPIP task 8", "unusual situation CELPIP"]
+    }
+  }
+}

@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+{% block title %}Video Preview — CELPIP Studio{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/video_preview.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/browse.css') }}">
+
+<div class="vp-layout">
+
+  <!-- ── Top bar ── -->
+  <div class="vp-topbar">
+    <div class="vp-section-tabs" id="sectionTabs">
+      <button class="vp-tab vp-tab-thumb active" data-section="thumb">0 · &#128247; Thumbnail</button>
+      <button class="vp-tab" data-section="1">1 · Question</button>
+      <button class="vp-tab" data-section="2">2 · Answer</button>
+      <button class="vp-tab" data-section="3">3 · Vocabulary</button>
+      <button class="vp-tab" data-section="4">4 · Shadowing</button>
+      <button class="vp-tab" data-section="5">5 · Final</button>
+    </div>
+
+    <div class="vp-topbar-right">
+      <span class="vp-slide-info" id="slideInfo">Slide 1 / —</span>
+      <div class="vp-voice-row">
+        <label class="vp-label">Voice</label>
+        <select id="vpVoiceSelect" class="vp-select">
+          {% for key, label in voices.items() %}
+          <option value="{{ key }}"{% if key == default_voice %} selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="vp-font-scale-row">
+        <span class="vp-label">Font</span>
+        <button class="vp-scale-btn" id="fontScaleDown" title="Decrease font size (↓)">−</button>
+        <span class="vp-scale-val" id="fontScaleVal">100%</span>
+        <button class="vp-scale-btn" id="fontScaleUp" title="Increase font size (↑)">+</button>
+      </div>
+      <button class="vp-btn vp-btn-randomize" id="randomizeBtn" title="Randomize current section theme (key: 0)">
+        ⟳ Randomize Theme
+      </button>
+      <button class="vp-btn vp-btn-ytinfo" id="vpYTInfoBtn" title="Get YouTube metadata to copy">
+        &#9654; YT Info
+      </button>
+      <button class="vp-btn vp-btn-generate" id="generateBtn">
+        ▶ Generate Video
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Thumbnail color toolbar (visible only on thumb tab) ── -->
+  <div class="vp-thumb-toolbar hidden" id="vpThumbToolbar">
+    <span class="vp-label">Color</span>
+    <div class="vp-color-swatches" id="vpColorSwatches">
+      <button class="vp-swatch" data-color="gold"   style="background:#f0c040" title="Gold"></button>
+      <button class="vp-swatch" data-color="green"  style="background:#38d48a" title="Green"></button>
+      <button class="vp-swatch" data-color="purple" style="background:#c084fc" title="Purple"></button>
+      <button class="vp-swatch" data-color="blue"   style="background:#4488ff" title="Blue"></button>
+      <button class="vp-swatch" data-color="red"    style="background:#ff4444" title="Red"></button>
+      <button class="vp-swatch" data-color="orange" style="background:#ff8c00" title="Orange"></button>
+      <button class="vp-swatch" data-color="teal"   style="background:#00d4d4" title="Teal"></button>
+      <button class="vp-swatch" data-color="pink"   style="background:#ff60b0" title="Pink"></button>
+      <button class="vp-swatch" data-color="dark"   style="background:#606060" title="Dark"></button>
+      <button class="vp-swatch" data-color="navy"   style="background:#60a8ff" title="Navy"></button>
+      <button class="vp-swatch vp-swatch-auto" data-color="" title="Auto (matches band score)">Auto</button>
+    </div>
+    <span class="vp-label" style="margin-left:18px">Font</span>
+    <select id="vpThumbFont" class="vp-select">
+      <option value="">Segoe UI (default)</option>
+      <option value="arial">Arial</option>
+      <option value="impact">Impact</option>
+      <option value="trebuchet">Trebuchet MS</option>
+      <option value="calibri">Calibri</option>
+      <option value="verdana">Verdana</option>
+      <option value="georgia">Georgia</option>
+    </select>
+  </div>
+
+  <!-- ── Frame viewer ── -->
+  <div class="vp-viewer" id="vpViewer">
+    <div class="vp-loading" id="vpLoading">Loading frame…</div>
+    <img id="vpFrame" class="vp-frame hidden" alt="Preview frame">
+    <div class="vp-error hidden" id="vpError">Failed to load frame</div>
+  </div>
+
+  <!-- ── Navigation bar ── -->
+  <div class="vp-navbar">
+    <button class="vp-nav-btn" id="prevBtn" title="Previous slide (←)">&#8592;</button>
+    <div class="vp-dots" id="vpDots"></div>
+    <button class="vp-nav-btn" id="nextBtn" title="Next slide (→)">&#8594;</button>
+  </div>
+
+  <!-- ── Keyboard shortcut hint ── -->
+  <div class="vp-keys">
+    <span class="vp-key-hint"><kbd>1</kbd>–<kbd>5</kbd> Switch section</span>
+    <span class="vp-key-hint"><kbd>0</kbd> Thumbnail</span>
+    <span class="vp-key-hint"><kbd>←</kbd><kbd>→</kbd> Navigate slides</span>
+    <span class="vp-key-hint"><kbd>↑</kbd><kbd>↓</kbd> Font size</span>
+    <span class="vp-key-hint"><kbd>.</kbd> Randomize theme</span>
+  </div>
+
+</div>
+
+<!-- Generate progress — floating, non-blocking -->
+<div class="vp-gen-toast hidden" id="genToast">
+  <div class="vp-gen-toast-head">
+    <span class="vp-gen-toast-title" id="genTitle">&#9654; Generating Video</span>
+    <button class="vp-gen-toast-close" id="genToastClose" title="Dismiss">&#10005;</button>
+  </div>
+
+  <div id="genLoading">
+    <div class="vp-progress-wrap" style="margin:10px 0 6px">
+      <div class="vp-progress-bar" id="genProgressBar" style="width:0%"></div>
+    </div>
+    <div class="vp-progress-label" id="genStep">Starting…</div>
+  </div>
+
+  <div id="genSuccess" style="display:none">
+    <div class="vp-gen-toast-status vp-gen-ok">&#10003; Video ready</div>
+    <div class="vp-gen-toast-path" id="genSuccessMsg"></div>
+    <div class="vp-gen-toast-actions">
+      <button class="vp-gen-toast-act" id="genOpenBtn">&#9654; Open</button>
+      <button class="vp-gen-toast-act" id="genFolderBtn">&#128193; Folder</button>
+      <button class="vp-gen-toast-act" id="genYTInfoBtn" style="background:#ff0000;border-color:#cc0000">&#9654; YT Info</button>
+      <button class="vp-gen-toast-act" id="closeGenBtn">Dismiss</button>
+    </div>
+  </div>
+
+  <div id="genError" style="display:none">
+    <div class="vp-gen-toast-status vp-gen-err">&#10007; Failed</div>
+    <div class="vp-gen-toast-path" id="genErrorMsg"></div>
+    <div class="vp-gen-toast-actions">
+      <button class="vp-gen-toast-act" id="closeGenErrBtn">Dismiss</button>
+    </div>
+  </div>
+</div>
+
+<!-- YouTube Info modal -->
+<div class="ytinfo-overlay hidden" id="vpYTInfoOverlay">
+  <div class="ytinfo-modal">
+    <div class="ytinfo-header">
+      <span class="ytinfo-title">&#9654; YouTube Upload Info</span>
+      <button class="ytinfo-close" id="vpYTInfoClose">&#10005;</button>
+    </div>
+    <div class="ytinfo-loading" id="vpYTInfoLoading">Loading metadata…</div>
+    <div class="ytinfo-body hidden" id="vpYTInfoBody">
+      <div class="ytinfo-hint">
+        Copy each field below and paste it when uploading on
+        <a href="https://studio.youtube.com" target="_blank">YouTube Studio</a>.
+      </div>
+      <div class="ytinfo-field">
+        <div class="ytinfo-field-head">
+          <span class="ytinfo-label">Title</span>
+          <button class="ytinfo-copy-btn" data-target="vpYTInfoTitle">Copy</button>
+        </div>
+        <div class="ytinfo-value ytinfo-single" id="vpYTInfoTitle"></div>
+      </div>
+      <div class="ytinfo-field">
+        <div class="ytinfo-field-head">
+          <span class="ytinfo-label">Description</span>
+          <button class="ytinfo-copy-btn" data-target="vpYTInfoDesc">Copy</button>
+        </div>
+        <textarea class="ytinfo-value ytinfo-textarea" id="vpYTInfoDesc" readonly></textarea>
+      </div>
+      <div class="ytinfo-field">
+        <div class="ytinfo-field-head">
+          <span class="ytinfo-label">Tags</span>
+          <button class="ytinfo-copy-btn" data-target="vpYTInfoTags">Copy</button>
+        </div>
+        <div class="ytinfo-value ytinfo-single" id="vpYTInfoTags"></div>
+      </div>
+      <div class="ytinfo-actions">
+        <a class="ytinfo-open-btn" href="https://studio.youtube.com/channel/upload" target="_blank">
+          &#9654; Open YouTube Studio
+        </a>
+        <button class="ytinfo-dismiss" id="vpYTInfoDismiss">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/video_preview.js') }}"></script>
+{% endblock %}

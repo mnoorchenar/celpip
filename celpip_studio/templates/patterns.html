@@ -1,0 +1,476 @@
+{% extends "base.html" %}
+{% block title %}Pattern Palette — CELPIP Studio{% endblock %}
+
+{% block content %}
+<style>
+  /* ── Page shell ─────────────────────────────────────────────── */
+  .pat-outer {
+    display: flex;
+    align-items: flex-start;
+    gap: 0;
+    max-width: 1700px;
+    margin: 0 auto;
+    padding: 32px 24px 80px;
+  }
+
+  /* ── Left: pattern previews ─────────────────────────────────── */
+  .pat-main {
+    flex: 1;
+    min-width: 0;
+    padding-right: 28px;
+  }
+  .pat-main h1 { font-size: 1.5rem; font-weight: 700; margin: 0 0 6px; }
+  .pat-main .subtitle {
+    color: var(--text-muted, #888); font-size: 0.9rem; margin: 0 0 36px;
+  }
+
+  .pat-section { margin-bottom: 48px; }
+  .pat-section h2 {
+    font-size: 1.05rem; font-weight: 700; margin: 0 0 4px;
+    border-left: 4px solid var(--accent, #3a6aff); padding-left: 10px;
+  }
+  .pat-section .section-note {
+    font-size: 0.8rem; color: var(--text-muted, #888); margin: 0 0 16px 14px;
+  }
+
+  .cat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 16px;
+  }
+  .cat-card, .compare-card {
+    background: var(--surface, #0f1223);
+    border: 1px solid var(--border, #1e2240);
+    border-radius: 10px; overflow: hidden;
+    transition: transform .15s, box-shadow .15s;
+  }
+  .cat-card:hover, .compare-card:hover {
+    transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.4);
+  }
+  .frame-wrap {
+    width: 100%; aspect-ratio: 16/9; background: #111;
+    position: relative; overflow: hidden;
+  }
+  .frame-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .frame-wrap .loading-ph {
+    position: absolute; inset: 0; display: flex;
+    align-items: center; justify-content: center;
+    font-size: 0.75rem; color: #555;
+  }
+  .card-info {
+    padding: 8px 12px 10px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .swatch, .band-swatch {
+    width: 16px; height: 16px; border-radius: 50%; flex-shrink: 0;
+    border: 2px solid rgba(255,255,255,0.15);
+  }
+  .band-swatch { border-radius: 4px; }
+  .cat-name { font-size: 0.8rem; font-weight: 600; flex: 1;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cat-hex, .card-sub { font-size: 0.7rem; color: var(--text-muted,#888); font-family: monospace; }
+  .card-label { font-size: 0.82rem; font-weight: 600; flex: 1; }
+  .freq-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+  .compare-row { display: grid; gap: 18px; }
+  .compare-row.cols-3 { grid-template-columns: repeat(3, 1fr); }
+  .compare-row.cols-5 { grid-template-columns: repeat(5, 1fr); }
+
+  /* ── Right panel: font size controls ───────────────────────── */
+  .pat-right {
+    width: 300px;
+    min-width: 300px;
+    position: sticky;
+    top: 72px;
+    background: var(--surface, #0f1223);
+    border: 1px solid var(--border, #1e2240);
+    border-radius: 14px;
+    padding: 24px 20px 20px;
+  }
+  .pat-right h3 {
+    font-size: 1rem; font-weight: 700; margin: 0 0 4px; color: #c4b5fd;
+  }
+  .pat-right .panel-sub {
+    font-size: 0.78rem; color: #666; margin: 0 0 22px;
+  }
+
+  .fs-row {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 16px;
+  }
+  .fs-label {
+    font-size: 0.78rem; font-weight: 600; color: #94a3b8;
+    width: 96px; flex-shrink: 0;
+  }
+  .fs-slider {
+    flex: 1; accent-color: #8b5cf6; cursor: pointer;
+  }
+  .fs-val {
+    font-size: 0.82rem; font-weight: 700; color: #e2e8f0;
+    width: 40px; text-align: right; flex-shrink: 0;
+  }
+
+  .pat-right hr {
+    border: none; border-top: 1px solid var(--border, #1e2240);
+    margin: 18px 0;
+  }
+
+  /* preview in panel */
+  .panel-preview {
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+    aspect-ratio: 16/9;
+    background: #111;
+    margin-bottom: 18px;
+  }
+  .panel-preview img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .panel-preview .loading-ph {
+    position: absolute; inset: 0; display: flex;
+    align-items: center; justify-content: center;
+    font-size: 0.72rem; color: #555;
+  }
+  .panel-preview-tabs {
+    display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px;
+  }
+  .ptab {
+    padding: 3px 10px; border-radius: 99px;
+    border: 1px solid #333; background: #1a1a2e;
+    color: #888; font-size: 0.72rem; cursor: pointer;
+    transition: all .12s;
+  }
+  .ptab:hover { border-color: #666; color: #ddd; }
+  .ptab.active { background: #8b5cf6; border-color: #8b5cf6; color: #fff; }
+
+  .btn-save {
+    width: 100%; padding: 10px; background: #8b5cf6; color: #fff;
+    border: none; border-radius: 8px; font-size: 0.9rem;
+    font-weight: 600; cursor: pointer; transition: background .15s;
+  }
+  .btn-save:hover { background: #7c3aed; }
+  .btn-save:disabled { opacity: .5; cursor: default; }
+  .save-status {
+    text-align: center; font-size: 0.78rem; margin-top: 8px;
+    min-height: 18px; color: #22c55e;
+  }
+  .btn-reset {
+    width: 100%; padding: 7px; background: transparent; color: #666;
+    border: 1px solid #333; border-radius: 8px; font-size: 0.8rem;
+    cursor: pointer; margin-top: 8px; transition: all .15s;
+  }
+  .btn-reset:hover { border-color: #888; color: #aaa; }
+</style>
+
+<div class="pat-outer">
+
+  <!-- ── Left: previews ─────────────────────────────────────────── -->
+  <div class="pat-main">
+
+    <div style="display:flex; align-items:baseline; gap:16px; margin-bottom:6px;">
+      <h1>Pattern Palette</h1>
+      <button onclick="shuffleSeeds()" style="
+        padding:5px 16px; border-radius:6px; border:1px solid var(--accent,#3a6aff);
+        background:transparent; color:var(--accent,#3a6aff); cursor:pointer;
+        font-size:0.82rem; font-weight:600;">
+        ↻ Shuffle
+      </button>
+    </div>
+    <p class="subtitle">
+      Category color is fixed per category. Decoration pattern is random per video seed.
+    </p>
+
+    <!-- Category accent colors -->
+    <div class="pat-section">
+      <h2>Category Accent Colors</h2>
+      <p class="section-note">Vocabulary Builder (Section 3) · 20 categories with fixed accent color</p>
+      <div class="cat-grid" id="catGrid">
+        {% for slug, name in categories.items() %}
+        {% set loop_seed = loop.index * 37 %}
+        <div class="cat-card" data-slug="{{ slug }}" data-section="3">
+          <div class="frame-wrap">
+            <div class="loading-ph">Loading…</div>
+            <img
+              loading="lazy"
+              data-base="/api/patterns/frame?category={{ slug }}&band=9_10&freq=medium&section=3"
+              data-src="/api/patterns/frame?category={{ slug }}&band=9_10&freq=medium&section=3&seed={{ loop_seed }}"
+              alt="{{ name }}"
+              style="display:none"
+              onload="this.style.display='block'; this.previousElementSibling.style.display='none';"
+            >
+          </div>
+          <div class="card-info">
+            <div class="swatch" style="background:{{ category_accent[slug] }}"></div>
+            <span class="cat-name">{{ name }}</span>
+            <span class="cat-hex">{{ category_accent[slug] }}</span>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Section badge colors -->
+    <div class="pat-section">
+      <h2>Section Badge Colors</h2>
+      <p class="section-note">Career &amp; Work · Band 9–10 · each section's fixed badge color</p>
+      <div class="compare-row cols-5" id="sectionGrid">
+        {% for num, label in sections.items() %}
+        <div class="compare-card">
+          <div class="frame-wrap">
+            <div class="loading-ph">Loading…</div>
+            <img
+              loading="lazy"
+              class="section-preview-img"
+              data-section="{{ num }}"
+              data-base="/api/patterns/frame?category=career_work&band=9_10&freq=medium&section={{ num }}"
+              data-src="/api/patterns/frame?category=career_work&band=9_10&freq=medium&section={{ num }}"
+              alt="{{ label }}"
+              style="display:none"
+              onload="this.style.display='block'; this.previousElementSibling.style.display='none';"
+            >
+          </div>
+          <div class="card-info">
+            <div class="freq-dot" style="background:{{ section_style[num]['badge_color'] }}"></div>
+            <span class="card-label" style="font-size:0.75rem;">{{ label }}</span>
+            <span class="card-sub">{{ section_style[num]['badge_color'] }}</span>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Frequency labels -->
+    <div class="pat-section">
+      <h2>Frequency Labels</h2>
+      <p class="section-note">Shown on the thumbnail bottom bar and on Section 1 frame</p>
+      <div class="compare-row cols-3">
+        {% for key, label in freqs.items() %}
+        <div class="compare-card">
+          <div class="frame-wrap">
+            <div class="loading-ph">Loading…</div>
+            <img
+              loading="lazy"
+              data-src="/api/patterns/frame?category=career_work&band=9_10&freq={{ key }}&section=1"
+              alt="{{ label }}"
+              style="display:none"
+              onload="this.style.display='block'; this.previousElementSibling.style.display='none';"
+            >
+          </div>
+          <div class="card-info">
+            <div class="freq-dot" style="background:{{ freq_config[key]['color'] }}"></div>
+            <span class="card-label">{{ label }}</span>
+            <span class="card-sub">{{ freq_config[key]['color'] }} · {{ freq_config[key]['label'] }}</span>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Band thumbnails -->
+    <div class="pat-section">
+      <h2>Band Thumbnails</h2>
+      <p class="section-note">Category: Career &amp; Work · frequency chip appears in bottom bar</p>
+      <div class="compare-row cols-3">
+        {% for key, label in bands.items() %}
+        <div class="compare-card">
+          <div class="frame-wrap">
+            <div class="loading-ph">Loading…</div>
+            <img
+              loading="lazy"
+              data-src="/api/patterns/frame?category=career_work&band={{ key }}&freq=high&section=0"
+              alt="{{ label }}"
+              style="display:none"
+              onload="this.style.display='block'; this.previousElementSibling.style.display='none';"
+            >
+          </div>
+          <div class="card-info">
+            <span class="card-label">{{ label }}</span>
+            <span class="card-sub">thumbnail only</span>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+  </div><!-- /.pat-main -->
+
+  <!-- ── Right panel: font size ──────────────────────────────────── -->
+  <div class="pat-right">
+
+    <h3>Font Size</h3>
+    <p class="panel-sub">Set default font scale per section. Affects all generated videos.</p>
+
+    <!-- Sliders 1–5 -->
+    {% set section_names = {1:'Question', 2:'Answer', 3:'Vocabulary', 4:'Shadowing', 5:'Final Review'} %}
+    {% for num in range(1, 6) %}
+    <div class="fs-row">
+      <span class="fs-label">§{{ num }} {{ section_names[num] }}</span>
+      <input type="range" class="fs-slider" id="slider{{ num }}"
+             min="50" max="150" step="5" value="100"
+             data-section="{{ num }}">
+      <span class="fs-val" id="val{{ num }}">100%</span>
+    </div>
+    {% endfor %}
+
+    <hr>
+
+    <!-- Live preview -->
+    <div class="panel-preview-tabs" id="previewTabs">
+      {% for num, label in sections.items() %}
+      <button class="ptab{% if num == 1 %} active{% endif %}"
+              data-section="{{ num }}">{{ loop.index }}·{{ label.split(' ')[-1] }}</button>
+      {% endfor %}
+    </div>
+    <div class="panel-preview">
+      <div class="loading-ph" id="panelPrevLoading">Loading…</div>
+      <img id="panelPrevImg" alt="Preview" style="display:none"
+           onload="this.style.display='block'; document.getElementById('panelPrevLoading').style.display='none';"
+           onerror="document.getElementById('panelPrevLoading').textContent='Error';">
+    </div>
+
+    <button class="btn-save" id="btnSave">&#10003; Save as Default</button>
+    <button class="btn-reset" id="btnReset">↺ Reset All to 100%</button>
+    <div class="save-status" id="saveStatus"></div>
+
+  </div><!-- /.pat-right -->
+
+</div><!-- /.pat-outer -->
+
+<script>
+(function () {
+  'use strict';
+
+  const SECTION_NAMES = { 1:'Question', 2:'Answer', 3:'Vocabulary', 4:'Shadowing', 5:'Final Review' };
+  let scales   = { 1:1.0, 2:1.0, 3:1.0, 4:1.0, 5:1.0 };
+  let prevSec  = 1;
+  let previewTimer = null;
+
+  // ── Load saved scales ────────────────────────────────────────────
+  fetch('/api/config/font-scales')
+    .then(r => r.json())
+    .then(data => {
+      for (let s = 1; s <= 5; s++) {
+        scales[s] = parseFloat(data[s] || 1.0);
+        const pct = Math.round(scales[s] * 100);
+        document.getElementById('slider' + s).value = pct;
+        document.getElementById('val' + s).textContent = pct + '%';
+      }
+      refreshSectionPreviews();
+      refreshPanelPreview();
+    });
+
+  // ── Slider listeners ─────────────────────────────────────────────
+  for (let s = 1; s <= 5; s++) {
+    const slider = document.getElementById('slider' + s);
+    slider.addEventListener('input', () => {
+      const pct = parseInt(slider.value, 10);
+      scales[s] = pct / 100;
+      document.getElementById('val' + s).textContent = pct + '%';
+      clearTimeout(previewTimer);
+      previewTimer = setTimeout(() => {
+        refreshSectionPreviews(s);  // refresh just the changed section in main grid
+        if (prevSec === s) refreshPanelPreview();
+      }, 250);
+    });
+  }
+
+  // ── Preview tabs ─────────────────────────────────────────────────
+  document.getElementById('previewTabs').addEventListener('click', e => {
+    const btn = e.target.closest('.ptab');
+    if (!btn) return;
+    document.querySelectorAll('.ptab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    prevSec = parseInt(btn.dataset.section, 10);
+    refreshPanelPreview();
+  });
+
+  // ── Refresh panel preview ────────────────────────────────────────
+  function refreshPanelPreview() {
+    const img  = document.getElementById('panelPrevImg');
+    const load = document.getElementById('panelPrevLoading');
+    const fs   = scales[prevSec].toFixed(2);
+    img.style.display = 'none';
+    load.style.display = 'flex';
+    load.textContent = 'Loading…';
+    img.src = `/api/patterns/frame?category=career_work&band=9_10&freq=medium&section=${prevSec}&font_scale=${fs}&seed=42`;
+  }
+
+  // ── Refresh section previews in main grid ────────────────────────
+  function refreshSectionPreviews(onlySection) {
+    document.querySelectorAll('.section-preview-img').forEach(img => {
+      const sec = parseInt(img.dataset.section, 10);
+      if (onlySection && sec !== onlySection) return;
+      const base = img.dataset.base;
+      const fs   = scales[sec].toFixed(2);
+      const ph   = img.previousElementSibling;
+      img.style.display = 'none';
+      if (ph) ph.style.display = 'flex';
+      img.src = base + `&font_scale=${fs}&seed=42`;
+    });
+  }
+
+  // ── Save ─────────────────────────────────────────────────────────
+  document.getElementById('btnSave').addEventListener('click', () => {
+    const btn = document.getElementById('btnSave');
+    const status = document.getElementById('saveStatus');
+    btn.disabled = true;
+    status.textContent = '';
+    const body = {};
+    for (let s = 1; s <= 5; s++) body[s] = scales[s];
+    fetch('/api/config/font-scales', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+      .then(r => r.json())
+      .then(() => {
+        btn.disabled = false;
+        status.textContent = '✓ Saved';
+        setTimeout(() => { status.textContent = ''; }, 2500);
+      })
+      .catch(() => {
+        btn.disabled = false;
+        status.style.color = '#ef4444';
+        status.textContent = 'Save failed';
+      });
+  });
+
+  // ── Reset ────────────────────────────────────────────────────────
+  document.getElementById('btnReset').addEventListener('click', () => {
+    for (let s = 1; s <= 5; s++) {
+      scales[s] = 1.0;
+      document.getElementById('slider' + s).value = 100;
+      document.getElementById('val' + s).textContent = '100%';
+    }
+    refreshSectionPreviews();
+    refreshPanelPreview();
+  });
+
+  // ── Lazy-load + shuffle (existing behaviour) ──────────────────────
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        const img = e.target;
+        if (img.dataset.src) { img.src = img.dataset.src; delete img.dataset.src; }
+        observer.unobserve(img);
+      }
+    });
+  }, { rootMargin: '200px' });
+
+  document.querySelectorAll('img[data-src]').forEach(img => observer.observe(img));
+
+  window.shuffleSeeds = function () {
+    document.querySelectorAll('#catGrid .cat-card img').forEach((img, i) => {
+      const seed = Math.floor(Math.random() * 9000) + 1000;
+      const base = img.dataset.base || img.src.replace(/&seed=\d+/, '').replace(/\?seed=\d+/, '');
+      const ph   = img.previousElementSibling;
+      img.style.display = 'none';
+      if (ph) ph.style.display = 'flex';
+      img.src = '';
+      img.dataset.src = base + '&seed=' + seed;
+      observer.observe(img);
+    });
+  };
+
+})();
+</script>
+{% endblock %}

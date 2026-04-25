@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+{% block title %}Margin Tuner{% endblock %}
+
+{% block content %}
+<style>
+  .tuner-wrap  { display: flex; gap: 24px; align-items: flex-start; flex-wrap: wrap; padding: 24px; }
+  .controls    { flex: 0 0 300px; background: #111827; border-radius: 12px; padding: 24px; }
+  .preview-col { flex: 1 1 600px; }
+  .preview-box { position: relative; background: #000; border-radius: 8px; overflow: hidden;
+                  aspect-ratio: 16/9; }
+  .preview-box img { width: 100%; display: block; border-radius: 8px; }
+  .spinner     { position: absolute; inset: 0; display: flex; align-items: center;
+                  justify-content: center; background: rgba(0,0,0,.55);
+                  color: #d1d5db; font-size: 14px; border-radius: 8px; }
+  .ctrl-group  { margin-bottom: 20px; }
+  .ctrl-label  { display: block; color: #9ca3af; font-size: 12px; margin-bottom: 6px;
+                  text-transform: uppercase; letter-spacing: .04em; }
+  .ctrl-row    { display: flex; align-items: center; gap: 10px; }
+  .ctrl-row input[type=range] { flex: 1; accent-color: #6366f1; cursor: pointer; }
+  .val         { width: 44px; text-align: right; color: #f3f4f6;
+                  font-variant-numeric: tabular-nums; font-size: 14px; font-weight: 600; }
+  .divider     { border: none; border-top: 1px solid #1f2937; margin: 18px 0; }
+  .btn-row     { display: flex; gap: 8px; margin-top: 6px; }
+  .btn-refresh { flex: 1; padding: 10px; background: #1f2937; color: #d1d5db;
+                  border: 1px solid #374151; border-radius: 8px; font-size: 13px; cursor: pointer; }
+  .btn-refresh:hover { background: #374151; }
+  .btn-save    { flex: 1; padding: 10px; background: #6366f1; color: #fff;
+                  border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
+  .btn-save:hover { background: #4f46e5; }
+  .btn-save:disabled { background: #374151; color: #6b7280; cursor: not-allowed; }
+  .saved-msg   { color: #34d399; font-size: 12px; text-align: center; margin-top: 10px; display: none; }
+  .hint        { color: #6b7280; font-size: 11px; margin-top: 5px; line-height: 1.4; }
+  .preview-actions { display: flex; justify-content: flex-end; margin-top: 8px; gap: 8px; }
+  .btn-recolor { padding: 7px 14px; background: #1f2937; color: #9ca3af;
+                  border: 1px solid #374151; border-radius: 6px; font-size: 12px; cursor: pointer; }
+  .btn-recolor:hover { background: #374151; color: #d1d5db; }
+</style>
+
+<div class="tuner-wrap">
+
+  <!-- ── Controls ── -->
+  <div class="controls">
+    <h2 style="font-size:16px;font-weight:700;color:#f3f4f6;margin:0 0 4px;">Margin Tuner</h2>
+    <p class="hint" style="margin-bottom:18px;">Changes apply to Section 2 &amp; 5. Save to use in all future videos.</p>
+
+    <!-- Side margin -->
+    <div class="ctrl-group">
+      <span class="ctrl-label">Side margin (left &amp; right) — <strong id="lbl-side">{{ current.side }}</strong> px</span>
+      <div class="ctrl-row">
+        <input type="range" id="sl-side" min="20" max="250" step="5"
+               value="{{ current.side }}" oninput="onSlide('side')">
+        <span class="val" id="val-side">{{ current.side }}</span>
+      </div>
+    </div>
+
+    <!-- Top margin -->
+    <div class="ctrl-group">
+      <span class="ctrl-label">Top margin (below bar) — <strong id="lbl-top">{{ current.top }}</strong> px</span>
+      <div class="ctrl-row">
+        <input type="range" id="sl-top" min="0" max="250" step="5"
+               value="{{ current.top }}" oninput="onSlide('top')">
+        <span class="val" id="val-top">{{ current.top }}</span>
+      </div>
+    </div>
+
+    <!-- Bottom margin -->
+    <div class="ctrl-group">
+      <span class="ctrl-label">Bottom margin — <strong id="lbl-bottom">{{ current.bottom }}</strong> px</span>
+      <div class="ctrl-row">
+        <input type="range" id="sl-bottom" min="20" max="250" step="5"
+               value="{{ current.bottom }}" oninput="onSlide('bottom')">
+        <span class="val" id="val-bottom">{{ current.bottom }}</span>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- Highlight right multiplier -->
+    <div class="ctrl-group">
+      <span class="ctrl-label">
+        Highlight right padding —
+        <strong id="lbl-hl">{{ current.hl_right_mult }}</strong>× left inner
+      </span>
+      <div class="ctrl-row">
+        <input type="range" id="sl-hl" min="-5" max="6" step="0.1"
+               value="{{ current.hl_right_mult }}" oninput="onSlide('hl')">
+        <span class="val" id="val-hl">{{ current.hl_right_mult }}</span>
+      </div>
+      <p class="hint">Right inner gap = this × left inner gap of the highlight box.</p>
+    </div>
+
+    <!-- Sentence gap (between blocks) -->
+    <div class="ctrl-group">
+      <span class="ctrl-label">Between sentences — <strong id="lbl-sentence_gap">{{ current.sentence_gap }}</strong> px</span>
+      <div class="ctrl-row">
+        <input type="range" id="sl-sentence_gap" min="0" max="120" step="4"
+               value="{{ current.sentence_gap }}" oninput="onSlide('sentence_gap')">
+        <span class="val" id="val-sentence_gap">{{ current.sentence_gap }}</span>
+      </div>
+      <p class="hint">Vertical gap between each sentence block (§2 &amp; §5).</p>
+    </div>
+
+    <!-- Line gap (within a sentence) -->
+    <div class="ctrl-group">
+      <span class="ctrl-label">Within sentence (line spacing) — <strong id="lbl-line_gap">{{ current.line_gap }}</strong> px</span>
+      <div class="ctrl-row">
+        <input type="range" id="sl-line_gap" min="0" max="60" step="2"
+               value="{{ current.line_gap }}" oninput="onSlide('line_gap')">
+        <span class="val" id="val-line_gap">{{ current.line_gap }}</span>
+      </div>
+      <p class="hint">Extra spacing between lines when a sentence wraps to multiple lines (§2 &amp; §5).</p>
+    </div>
+
+    <hr class="divider">
+
+    <div class="btn-row">
+      <button class="btn-refresh" onclick="refreshPreview()">&#8635; Preview</button>
+      <button class="btn-save" id="save-btn" onclick="saveMargins()">&#10003; Save</button>
+    </div>
+    <p class="saved-msg" id="saved-msg">Saved — applies to all future videos.</p>
+  </div>
+
+  <!-- ── Preview ── -->
+  <div class="preview-col">
+    <div class="preview-box" id="preview-box">
+      <img id="preview-img" src="" alt="Preview">
+      <div class="spinner" id="spinner">Rendering…</div>
+    </div>
+    <div class="preview-actions">
+      <button class="btn-recolor" onclick="randomizeColor()">&#127917; Random colors</button>
+    </div>
+    <p class="hint" style="text-align:center;margin-top:2px;">
+      Section 2 layout · First sentence active · Colors randomize each preview
+    </p>
+  </div>
+
+</div>
+
+<script>
+const Q = {{ preview_q | tojson }};
+let currentSeed = Math.floor(Math.random() * 2147483647);
+let debounce    = null;
+
+function getValues() {
+  return {
+    side:          parseFloat(document.getElementById('sl-side').value),
+    top:           parseFloat(document.getElementById('sl-top').value),
+    bottom:        parseFloat(document.getElementById('sl-bottom').value),
+    hl_right_mult: parseFloat(document.getElementById('sl-hl').value),
+    sentence_gap:  parseFloat(document.getElementById('sl-sentence_gap').value),
+    line_gap:      parseFloat(document.getElementById('sl-line_gap').value),
+  };
+}
+
+function onSlide(key) {
+  // 'hl' is a short alias for the hl_right_mult slider (its DOM id uses 'hl')
+  const slKey = key;
+  const v = parseFloat(document.getElementById('sl-' + slKey).value);
+  const disp = Number.isInteger(v) ? v : v.toFixed(1);
+  document.getElementById('val-' + slKey).textContent = disp;
+  document.getElementById('lbl-' + slKey).textContent = disp;
+  clearTimeout(debounce);
+  debounce = setTimeout(refreshPreview, 380);
+}
+
+
+function randomizeColor() {
+  currentSeed = Math.floor(Math.random() * 2147483647);
+  refreshPreview();
+}
+
+function buildUrl() {
+  const v = getValues();
+  return '/api/margin-preview/frame?' + new URLSearchParams({
+    side:          v.side,
+    top:           v.top,
+    bottom:        v.bottom,
+    hl_right_mult: v.hl_right_mult,
+    sentence_gap:  v.sentence_gap,
+    line_gap:      v.line_gap,
+    seed:          currentSeed,
+    question:      Q.question,
+    answer:        Q.answer,
+    task_name:     Q.task_name,
+    _t:            Date.now(),
+  });
+}
+
+function refreshPreview() {
+  const spinner = document.getElementById('spinner');
+  spinner.style.display = 'flex';
+  const tmp = new Image();
+  tmp.onload  = () => { document.getElementById('preview-img').src = tmp.src; spinner.style.display = 'none'; };
+  tmp.onerror = () => { spinner.style.display = 'none'; };
+  tmp.src = buildUrl();
+}
+
+async function saveMargins() {
+  const btn = document.getElementById('save-btn');
+  const msg = document.getElementById('saved-msg');
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
+  msg.style.display = 'none';
+  try {
+    const res = await fetch('/api/margin-config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(getValues()),
+    });
+    const d = await res.json();
+    if (d.ok) { msg.style.display = 'block'; setTimeout(() => { msg.style.display = 'none'; }, 4000); }
+  } catch(e) { alert('Save failed: ' + e); }
+  btn.disabled = false;
+  btn.textContent = '✓ Save';
+}
+
+window.addEventListener('DOMContentLoaded', refreshPreview);
+</script>
+{% endblock %}
