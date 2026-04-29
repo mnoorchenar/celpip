@@ -25,6 +25,10 @@
             "html": "celpip_studio/templates/patterns.html"
           },
           {
+            "name": "reading_lab",
+            "html": "celpip_studio/templates/reading_lab.html"
+          },
+          {
             "name": "shadowing",
             "html": "celpip_studio/templates/shadowing.html"
           },

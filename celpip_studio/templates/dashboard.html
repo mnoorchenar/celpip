@@ -4,81 +4,21 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CELPIP Practice Studio</title>
+<link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; overflow: hidden; font-family: 'Segoe UI', Arial, sans-serif; font-size: 14px; background: #f1f5f9; color: #1e293b; }
 
 /* ── Layout ── */
 #app { display: flex; height: 100vh; }
-
-/* ── Sidebar ── */
-#sidebar {
-  width: 280px; min-width: 280px; background: #0f172a; color: #e2e8f0;
-  display: flex; flex-direction: column; overflow: hidden;
-  transition: width 0.2s; z-index: 20;
-  border-right: 1px solid #1e293b;
-}
-#sidebar.collapsed { width: 0; min-width: 0; }
-
-#sidebar-header { padding: 18px 16px 14px; border-bottom: 1px solid #1e293b; flex-shrink: 0; }
-#sidebar-header h1 { font-size: 17px; font-weight: 700; color: #f8fafc; letter-spacing: -0.3px; }
-#sidebar-header p { font-size: 11px; color: #64748b; margin-top: 2px; }
-
-#sidebar-search { padding: 12px 14px; border-bottom: 1px solid #1e293b; flex-shrink: 0; }
-#sidebar-search input {
-  width: 100%; background: #1e293b; border: 1px solid #334155; border-radius: 6px;
-  color: #e2e8f0; padding: 7px 10px; font-size: 13px; outline: none;
-}
-#sidebar-search input::placeholder { color: #475569; }
-#sidebar-search input:focus { border-color: #3b82f6; }
-
-#sidebar-filters { flex: 1; overflow-y: auto; padding-bottom: 8px; }
-#sidebar-filters::-webkit-scrollbar { width: 4px; }
-#sidebar-filters::-webkit-scrollbar-track { background: transparent; }
-#sidebar-filters::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
-
-.filter-section { border-bottom: 1px solid #1e293b; }
-.filter-section-header {
-  padding: 10px 14px; display: flex; justify-content: space-between; align-items: center;
-  cursor: pointer; user-select: none; color: #94a3b8; font-size: 11px;
-  font-weight: 600; text-transform: uppercase; letter-spacing: 0.7px;
-}
-.filter-section-header:hover { color: #cbd5e1; }
-.filter-section-header .arrow { transition: transform 0.15s; font-size: 10px; }
-.filter-section-header.open .arrow { transform: rotate(90deg); }
-.filter-section-body { overflow: hidden; }
-.filter-section-body.hidden { display: none; }
-
-.filter-item {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 6px 14px 6px 16px; cursor: pointer; border-radius: 0;
-  transition: background 0.1s; gap: 6px;
-}
-.filter-item:hover { background: #1e293b; }
-.filter-item.active { background: #1e3a5f; }
-.filter-item input { display: none; }
-.filter-item-label { flex: 1; font-size: 13px; color: #cbd5e1; }
-.filter-item.active .filter-item-label { color: #93c5fd; font-weight: 500; }
-.filter-item-count { font-size: 11px; color: #475569; min-width: 24px; text-align: right; }
-.filter-item.active .filter-item-count { color: #60a5fa; }
-
-#sidebar-footer {
-  padding: 12px 14px; border-top: 1px solid #1e293b; flex-shrink: 0;
-  display: flex; gap: 8px;
-}
-#sidebar-footer a {
-  flex: 1; text-align: center; padding: 7px 8px; background: #1e293b;
-  border-radius: 6px; color: #94a3b8; font-size: 12px; text-decoration: none;
-  transition: background 0.15s, color 0.15s;
-}
-#sidebar-footer a:hover { background: #334155; color: #e2e8f0; }
+#sidebar { display: none; }
 
 /* ── Main content ── */
 #main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
 
 /* ── Toolbar ── */
 #toolbar {
-  background: #fff; border-bottom: 1px solid #e2e8f0; padding: 0 16px;
+  background: #fff; border-bottom: 1px solid #e2e8f0; padding: 0 28px;
   flex-shrink: 0; z-index: 10; box-shadow: 0 1px 3px rgba(0,0,0,0.06);
 }
 #stats-row {
@@ -99,12 +39,6 @@ html, body { height: 100%; overflow: hidden; font-family: 'Segoe UI', Arial, san
 #toolbar-row {
   display: flex; align-items: center; gap: 8px; padding: 8px 0;
 }
-#sidebar-toggle {
-  background: none; border: 1px solid #e2e8f0; border-radius: 6px;
-  padding: 6px 9px; cursor: pointer; color: #64748b; font-size: 14px; line-height: 1;
-}
-#sidebar-toggle:hover { background: #f8fafc; }
-
 /* voice-select styled inline inside its wrapper */
 
 .filter-select {
@@ -146,8 +80,8 @@ html, body { height: 100%; overflow: hidden; font-family: 'Segoe UI', Arial, san
 #list-area { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
 
 #list-header {
-  display: grid; grid-template-columns: 36px 110px 1fr 260px 160px;
-  gap: 0; padding: 0 16px; background: #f8fafc;
+  display: grid; grid-template-columns: 36px 70px 90px 1fr 260px 190px;
+  gap: 0; padding: 0 28px; background: #f8fafc;
   border-bottom: 1px solid #e2e8f0; font-size: 11px; font-weight: 600;
   color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;
   flex-shrink: 0; min-height: 38px;
@@ -181,15 +115,16 @@ html, body { height: 100%; overflow: hidden; font-family: 'Segoe UI', Arial, san
 .template-row.selected:hover { background: #dbeafe; }
 
 .row-main {
-  display: grid; grid-template-columns: 36px 110px 1fr 260px 160px;
-  gap: 0; padding: 10px 16px; align-items: center; cursor: pointer;
+  display: grid; grid-template-columns: 36px 70px 90px 1fr 260px 190px;
+  gap: 0; padding: 10px 28px; align-items: center; cursor: pointer;
 }
 
 .row-cb { display: flex; align-items: center; }
 .row-cb input { accent-color: #3b82f6; width: 16px; height: 16px; cursor: pointer; }
 
-.row-id { display: flex; flex-direction: column; gap: 4px; }
+.row-id { display: flex; align-items: center; }
 .row-id-val { font-family: 'Consolas', monospace; font-size: 11px; color: #64748b; }
+.row-freq { display: flex; align-items: center; }
 
 .row-title-cell { min-width: 0; }
 .row-title {
@@ -204,8 +139,6 @@ html, body { height: 100%; overflow: hidden; font-family: 'Segoe UI', Arial, san
   display: inline-block; width: 7px; height: 7px; border-radius: 50%;
   margin-right: 4px; vertical-align: middle;
 }
-
-/* row-freq is now stacked inside .row-id */
 
 /* ── Status column header filter toggles ── */
 .col-status { gap: 5px; }
@@ -274,10 +207,12 @@ html, body { height: 100%; overflow: hidden; font-family: 'Segoe UI', Arial, san
 .btn-reset:hover { background: #fecaca; }
 .btn-detail { background: #f1f5f9; color: #374151; border: 1px solid #e2e8f0; }
 .btn-detail:hover { background: #e2e8f0; }
+.btn-shadow { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
+.btn-shadow:hover { background: #dcfce7; }
 
 /* ── Expanded row detail ── */
 .row-detail {
-  padding: 0 16px 0 152px;
+  padding: 0 28px 0 224px;
   background: #fafbfc; border-top: 1px solid #f1f5f9;
   display: none;
 }
@@ -324,14 +259,12 @@ html, body { height: 100%; overflow: hidden; font-family: 'Segoe UI', Arial, san
 
 /* ── Selection bar ── */
 #selection-bar {
-  position: fixed; bottom: 0; left: 280px; right: 0;
-  background: #1e293b; color: #f8fafc; padding: 12px 20px;
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: #1e293b; color: #f8fafc; padding: 12px 28px;
   display: none; align-items: center; gap: 12px;
   z-index: 90; box-shadow: 0 -4px 12px rgba(0,0,0,0.15);
-  transition: left 0.2s;
 }
 #selection-bar.visible { display: flex; }
-#selection-bar.sidebar-collapsed { left: 0; }
 #sel-count { font-size: 14px; font-weight: 600; flex: 1; }
 #btn-view-selected {
   background: transparent; color: #94a3b8; border: 1px solid #334155;
@@ -600,7 +533,7 @@ textarea.form-input { resize: vertical; min-height: 80px; }
 @media (max-width: 700px) {
   #list-header .col-status,
   .row-status { display: none; }
-  #list-header, .row-main { grid-template-columns: 36px 100px 1fr 160px; }
+  #list-header, .row-main { grid-template-columns: 36px 70px 90px 1fr 190px; }
 }
 </style>
 </head>
@@ -618,181 +551,6 @@ textarea.form-input { resize: vertical; min-height: 80px; }
 
 <!-- App layout -->
 <div id="app">
-
-  <!-- ── Sidebar ── -->
-  <aside id="sidebar">
-    <div id="sidebar-header">
-      <h1>CELPIP Studio</h1>
-      <p>Practice Video Generator</p>
-    </div>
-
-    <div id="sidebar-search">
-      <input type="text" id="search-input" placeholder="Search title or question…" autocomplete="off">
-    </div>
-
-    <div id="sidebar-filters">
-
-      <!-- Skill filter -->
-      <div class="filter-section" id="fs-skill">
-        <div class="filter-section-header" onclick="toggleSection('skill')">
-          <span>Skill</span><span class="arrow">▶</span>
-        </div>
-        <div class="filter-section-body hidden" id="fsb-skill">
-          <div class="filter-item active" data-skill="speaking" onclick="setSkill('speaking')">
-            <span class="filter-item-label">Speaking</span>
-            <span class="filter-item-count" id="skill-count-speaking">0</span>
-          </div>
-          <div class="filter-item" data-skill="writing" onclick="setSkill('writing')" style="opacity:0.4;pointer-events:none">
-            <span class="filter-item-label">Writing</span>
-            <span class="filter-item-count">0</span>
-          </div>
-          <div class="filter-item" data-skill="listening" onclick="setSkill('listening')" style="opacity:0.4;pointer-events:none">
-            <span class="filter-item-label">Listening</span>
-            <span class="filter-item-count">0</span>
-          </div>
-          <div class="filter-item" data-skill="reading" onclick="setSkill('reading')" style="opacity:0.4;pointer-events:none">
-            <span class="filter-item-label">Reading</span>
-            <span class="filter-item-count">0</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Part filter -->
-      <div class="filter-section" id="fs-part">
-        <div class="filter-section-header" onclick="toggleSection('part')">
-          <span>Part</span><span class="arrow">▶</span>
-        </div>
-        <div class="filter-section-body hidden" id="fsb-part">
-          <!-- injected by JS -->
-        </div>
-      </div>
-
-      <!-- Band filter -->
-      <div class="filter-section" id="fs-band">
-        <div class="filter-section-header" onclick="toggleSection('band')">
-          <span>Band</span><span class="arrow">▶</span>
-        </div>
-        <div class="filter-section-body hidden" id="fsb-band">
-          <div class="filter-item active" data-band="" onclick="setBand('')">
-            <span class="filter-item-label">All Bands</span>
-            <span class="filter-item-count" id="band-count-all">0</span>
-          </div>
-          <div class="filter-item" data-band="9_10" onclick="setBand('9_10')">
-            <span class="filter-item-label">Band 9–10</span>
-            <span class="filter-item-count" id="band-count-9_10">0</span>
-          </div>
-          <div class="filter-item" data-band="7_8" onclick="setBand('7_8')">
-            <span class="filter-item-label">Band 7–8</span>
-            <span class="filter-item-count" id="band-count-7_8">0</span>
-          </div>
-          <div class="filter-item" data-band="5_6" onclick="setBand('5_6')">
-            <span class="filter-item-label">Band 5–6</span>
-            <span class="filter-item-count" id="band-count-5_6">0</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Category filter -->
-      <div class="filter-section" id="fs-category">
-        <div class="filter-section-header open" onclick="toggleSection('category')">
-          <span>Category</span><span class="arrow">▶</span>
-        </div>
-        <div class="filter-section-body" id="fsb-category">
-          <div class="filter-item active" data-val="" onclick="setCategory('')">
-            <span class="filter-item-label">All Categories</span>
-            <span class="filter-item-count" id="cat-count-all">0</span>
-          </div>
-          <!-- injected by JS -->
-        </div>
-      </div>
-
-      <!-- Priority filter -->
-      <div class="filter-section" id="fs-priority">
-        <div class="filter-section-header" onclick="toggleSection('priority')">
-          <span>Priority</span><span class="arrow">▶</span>
-        </div>
-        <div class="filter-section-body hidden" id="fsb-priority">
-          <div class="filter-item" data-freq="High Probability" onclick="toggleFreq('High Probability')">
-            <span class="filter-item-label">★★★ High Priority</span>
-            <span class="filter-item-count" id="freq-count-high">0</span>
-          </div>
-          <div class="filter-item" data-freq="Medium-High Probability" onclick="toggleFreq('Medium-High Probability')">
-            <span class="filter-item-label">★★☆ Med-High</span>
-            <span class="filter-item-count" id="freq-count-med-high">0</span>
-          </div>
-          <div class="filter-item" data-freq="Medium Probability" onclick="toggleFreq('Medium Probability')">
-            <span class="filter-item-label">★★☆ Medium</span>
-            <span class="filter-item-count" id="freq-count-medium">0</span>
-          </div>
-          <div class="filter-item" data-freq="Lower Probability" onclick="toggleFreq('Lower Probability')">
-            <span class="filter-item-label">★☆☆ Lower</span>
-            <span class="filter-item-count" id="freq-count-lower">0</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Answer filter -->
-      <div class="filter-section" id="fs-answer">
-        <div class="filter-section-header" onclick="toggleSection('answer')">
-          <span>Answer</span><span class="arrow">▶</span>
-        </div>
-        <div class="filter-section-body hidden" id="fsb-answer">
-          <div class="filter-item active" data-ans="" onclick="setAnswer('')">
-            <span class="filter-item-label">All</span>
-          </div>
-          <div class="filter-item" data-ans="yes" onclick="setAnswer('yes')">
-            <span class="filter-item-label">Has Answer</span>
-          </div>
-          <div class="filter-item" data-ans="no" onclick="setAnswer('no')">
-            <span class="filter-item-label">No Answer</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Video filter -->
-      <div class="filter-section" id="fs-video">
-        <div class="filter-section-header open" onclick="toggleSection('video')">
-          <span>Video</span><span class="arrow">▶</span>
-        </div>
-        <div class="filter-section-body" id="fsb-video">
-          <div class="filter-item active" data-vid="" onclick="setVideo('')">
-            <span class="filter-item-label">All</span>
-          </div>
-          <div class="filter-item" data-vid="generated" onclick="setVideo('generated')">
-            <span class="filter-item-label">Generated</span>
-          </div>
-          <div class="filter-item" data-vid="not_generated" onclick="setVideo('not_generated')">
-            <span class="filter-item-label">Not Generated</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- YouTube filter -->
-      <div class="filter-section" id="fs-youtube">
-        <div class="filter-section-header" onclick="toggleSection('youtube')">
-          <span>YouTube</span><span class="arrow">▶</span>
-        </div>
-        <div class="filter-section-body hidden" id="fsb-youtube">
-          <div class="filter-item active" data-yt="" onclick="setYoutube('')">
-            <span class="filter-item-label">All</span>
-          </div>
-          <div class="filter-item" data-yt="posted" onclick="setYoutube('posted')">
-            <span class="filter-item-label">Posted</span>
-          </div>
-          <div class="filter-item" data-yt="not_posted" onclick="setYoutube('not_posted')">
-            <span class="filter-item-label">Not Posted</span>
-          </div>
-        </div>
-      </div>
-
-
-    </div><!-- /sidebar-filters -->
-
-    <div id="sidebar-footer">
-      <a href="/video-preview">Preview Tool</a>
-      <a href="/shadowing">Shadowing</a>
-    </div>
-  </aside>
 
   <!-- ── Main ── -->
   <div id="main">
@@ -813,6 +571,12 @@ textarea.form-input { resize: vertical; min-height: 80px; }
                 onmouseout="this.style.background='#f8fafc';this.style.borderColor='#e2e8f0'">
           <span style="font-size:13px;line-height:1">Aa</span> Font Size
         </button>
+        <a href="/video-preview"
+           style="display:flex;align-items:center;gap:5px;padding:2px 10px;height:28px;border:1px solid #e2e8f0;border-radius:6px;background:#f8fafc;color:#374151;font-size:12px;font-weight:500;cursor:pointer;flex-shrink:0;transition:all 0.15s;margin-left:2px;text-decoration:none;"
+           onmouseover="this.style.background='#e2e8f0';this.style.borderColor='#94a3b8'"
+           onmouseout="this.style.background='#f8fafc';this.style.borderColor='#e2e8f0'">
+          <span style="font-size:13px;line-height:1">🖼</span> Preview Tool
+        </a>
         <button id="btn-voice-preview" onclick="openVoicePreviewModal()"
                 style="display:flex;align-items:center;gap:5px;padding:2px 10px;height:28px;border:1px solid #e2e8f0;border-radius:6px;background:#f8fafc;color:#374151;font-size:12px;font-weight:500;cursor:pointer;flex-shrink:0;transition:all 0.15s;margin-left:2px;"
                 onmouseover="this.style.background='#e2e8f0';this.style.borderColor='#94a3b8'"
@@ -830,7 +594,6 @@ textarea.form-input { resize: vertical; min-height: 80px; }
         </div>
       </div>
       <div id="toolbar-row">
-        <button id="sidebar-toggle" onclick="toggleSidebar()" title="Toggle sidebar">☰</button>
         <div id="toolbar-search-wrap">
           <span id="toolbar-search-icon">🔍</span>
           <input type="text" id="toolbar-search" placeholder="Search title or question…" autocomplete="off">
@@ -893,7 +656,8 @@ textarea.form-input { resize: vertical; min-height: 80px; }
     <!-- List header -->
     <div id="list-header">
       <div class="col-cb"><input type="checkbox" class="col-select-all" id="select-all" onclick="toggleSelectAll()"></div>
-      <div>ID / Priority</div>
+      <div>ID</div>
+      <div>Priority</div>
       <div>Question &amp; Category</div>
       <div class="col-status">
         <button class="sf-btn" id="sf-ans" data-state="" onclick="cycleStatusFilter('ans')" title="Filter: Answer (click to cycle)">Answer</button>
@@ -1353,7 +1117,6 @@ let activeBand       = '';
 let searchQuery      = '';
 let currentVoice     = 'af_heart';
 let activeJobs       = {};   // templateId -> { jobId, polling interval }
-let sidebarOpen      = true;
 let queueBodyOpen    = true;
 let queuePanelOpen   = false;
 let viewingSelection = false;
@@ -1464,49 +1227,11 @@ function buildCategoryList() {
     });
   }
 
-  const container = document.getElementById('fsb-category');
-  // Remove old injected items
-  const old = container.querySelectorAll('[data-injected]');
-  old.forEach(el => el.remove());
-
-  cats.forEach(cat => {
-    const div = document.createElement('div');
-    div.className = 'filter-item';
-    div.dataset.val = cat;
-    div.dataset.injected = '1';
-    div.onclick = () => setCategory(cat);
-    div.innerHTML = `
-      <span class="filter-item-label">
-        <span class="category-dot" style="background:${catColor(cat)}"></span>${cat}
-      </span>
-      <span class="filter-item-count" id="cat-count-${encodeURIComponent(cat)}">0</span>
-    `;
-    container.appendChild(div);
-  });
 }
 
-// ── Build part sidebar items ──────────────────────────────────────────────────
+// ── Build part toolbar dropdown ────────────────────────────────────────────────
 function buildPartList() {
   const parts = [...new Set(allTemplates.map(t => t.part))].sort((a,b) => a-b);
-
-  // Sidebar
-  const container = document.getElementById('fsb-part');
-  container.innerHTML = '';
-  const allDiv = document.createElement('div');
-  allDiv.className = 'filter-item active';
-  allDiv.dataset.part = '';
-  allDiv.onclick = () => setPart('');
-  allDiv.innerHTML = `<span class="filter-item-label">All Parts</span><span class="filter-item-count">${allTemplates.length}</span>`;
-  container.appendChild(allDiv);
-  parts.forEach(part => {
-    const cnt = allTemplates.filter(t => t.part == part).length;
-    const div = document.createElement('div');
-    div.className = 'filter-item';
-    div.dataset.part = String(part);
-    div.onclick = () => setPart(String(part));
-    div.innerHTML = `<span class="filter-item-label">Part ${part}</span><span class="filter-item-count">${cnt}</span>`;
-    container.appendChild(div);
-  });
 
   // Toolbar Part select — populate dynamically
   const tbPart = document.getElementById('tb-part');
@@ -1565,7 +1290,8 @@ function updateFilterCounts() {
     return true;
   });
 
-  document.getElementById('cat-count-all').textContent = matchesNoCat.length;
+  const catCountAll = document.getElementById('cat-count-all');
+  if (catCountAll) catCountAll.textContent = matchesNoCat.length;
 
   const cats = [...new Set(allTemplates.map(t => t.category))];
   cats.forEach(cat => {
@@ -1704,13 +1430,8 @@ function selectPriOpt(val) {
   document.querySelectorAll('.pri-opt').forEach(el => {
     el.classList.toggle('active', el.dataset.val === val);
   });
-  // Apply filter — single-select replaces the whole freq set
   activeFreqs.clear();
   if (val) activeFreqs.add(val);
-  // Sync sidebar priority items
-  document.querySelectorAll('#fsb-priority .filter-item').forEach(el => {
-    el.classList.toggle('active', activeFreqs.has(el.dataset.freq));
-  });
   applyFilters();
 }
 
@@ -1742,11 +1463,6 @@ document.addEventListener('click', e => {
 // ── Sidebar filter setters ────────────────────────────────────────────────────
 function setCategory(val) {
   activeCategory = val;
-  // Highlight active sidebar item
-  document.querySelectorAll('#fsb-category .filter-item').forEach(el => {
-    el.classList.toggle('active', el.dataset.val === val);
-  });
-  // Sync custom category dropdown button label + active state
   syncCatDropdown(val);
   applyFilters();
 }
@@ -1754,19 +1470,12 @@ function setCategory(val) {
 function toggleFreq(val) {
   if (activeFreqs.has(val)) activeFreqs.delete(val);
   else activeFreqs.add(val);
-  document.querySelectorAll('#fsb-priority .filter-item').forEach(el => {
-    el.classList.toggle('active', activeFreqs.has(el.dataset.freq));
-  });
   syncPriDropdown();
   applyFilters();
 }
 
 function setAnswer(val) {
   activeAnswer = val;
-  document.querySelectorAll('#fsb-answer .filter-item').forEach(el => {
-    el.classList.toggle('active', el.dataset.ans === val);
-  });
-  // Sync header toggle
   const btn = document.getElementById('sf-ans');
   if (btn) btn.dataset.state = val === 'yes' ? 'yes' : val === 'no' ? 'no' : '';
   applyFilters();
@@ -1774,10 +1483,6 @@ function setAnswer(val) {
 
 function setVideo(val) {
   activeVideo = val;
-  document.querySelectorAll('#fsb-video .filter-item').forEach(el => {
-    el.classList.toggle('active', el.dataset.vid === val);
-  });
-  // Sync header toggle
   const btn = document.getElementById('sf-vid');
   if (btn) btn.dataset.state = val === 'generated' ? 'yes' : val === 'not_generated' ? 'no' : '';
   applyFilters();
@@ -1785,10 +1490,6 @@ function setVideo(val) {
 
 function setYoutube(val) {
   activeYoutube = val;
-  document.querySelectorAll('#fsb-youtube .filter-item').forEach(el => {
-    el.classList.toggle('active', el.dataset.yt === val);
-  });
-  // Sync header toggle
   const btn = document.getElementById('sf-yt');
   if (btn) btn.dataset.state = val === 'posted' ? 'yes' : val === 'not_posted' ? 'no' : '';
   applyFilters();
@@ -1810,25 +1511,13 @@ function cycleStatusFilter(type) {
   }
 }
 
-function toggleSection(id) {
-  const header = document.querySelector(`#fs-${id} .filter-section-header`);
-  const body   = document.getElementById(`fsb-${id}`);
-  header.classList.toggle('open');
-  body.classList.toggle('hidden');
-}
 
 function setSkill(val) {
-  document.querySelectorAll('#fsb-skill .filter-item').forEach(el => {
-    el.classList.toggle('active', el.dataset.skill === val);
-  });
   // All current data is speaking — no filter change needed
 }
 
 function setPart(val) {
   activePart = val;
-  document.querySelectorAll('#fsb-part .filter-item').forEach(el => {
-    el.classList.toggle('active', el.dataset.part === val);
-  });
   const tbPart = document.getElementById('tb-part');
   if (tbPart && tbPart.value !== val) tbPart.value = val;
   applyFilters();
@@ -1836,9 +1525,6 @@ function setPart(val) {
 
 function setBand(val) {
   activeBand = val;
-  document.querySelectorAll('#fsb-band .filter-item').forEach(el => {
-    el.classList.toggle('active', el.dataset.band === val);
-  });
   const tbBand = document.getElementById('tb-band');
   if (tbBand && tbBand.value !== val) tbBand.value = val;
   applyFilters();
@@ -1855,16 +1541,11 @@ function handleSearchInput(val) {
   clearTimeout(searchTimer);
   searchTimer = setTimeout(() => {
     searchQuery = val.trim();
-    // Sync both inputs
-    const sidebar  = document.getElementById('search-input');
-    const toolbar  = document.getElementById('toolbar-search');
-    if (sidebar && sidebar.value !== val)  sidebar.value = val;
-    if (toolbar && toolbar.value !== val)  toolbar.value = val;
+    const toolbar = document.getElementById('toolbar-search');
+    if (toolbar && toolbar.value !== val) toolbar.value = val;
     applyFilters();
   }, 300);
 }
-
-document.getElementById('search-input').addEventListener('input', e => handleSearchInput(e.target.value));
 
 const _tbSearch = document.getElementById('toolbar-search');
 if (_tbSearch) _tbSearch.addEventListener('input', e => handleSearchInput(e.target.value));
@@ -1985,6 +1666,8 @@ function fillRow(main, detail, t) {
     </div>
     <div class="row-id">
       <span class="row-id-val">${escHtml(t.template_id || '')}</span>
+    </div>
+    <div class="row-freq">
       <span class="freq-badge ${freqBadgeClass(t.frequency_label)}">${freqShortLabel(t.frequency_label)}</span>
     </div>
     <div class="row-title-cell">
@@ -2048,6 +1731,9 @@ function buildActions(t, activeJob) {
     }
   }
 
+  if (hasAnswer) {
+    btns += `<button class="action-btn btn-shadow" onclick="event.stopPropagation();openShadowing(${t.id})" title="Shadowing practice">🎧</button>`;
+  }
   btns += `<button class="action-btn btn-detail" onclick="event.stopPropagation();openDetailModal(${t.id})" title="View detail">👁</button>`;
   if (isGenerated) {
     btns += `<button class="action-btn btn-reset" onclick="event.stopPropagation();resetTemplate(${t.id})" title="Reset video">↺</button>`;
@@ -2134,7 +1820,6 @@ function updateSelectionUI() {
   document.getElementById('btn-generate-selected').disabled = n === 0;
   const bar = document.getElementById('selection-bar');
   bar.classList.toggle('visible', n > 0);
-  bar.classList.toggle('sidebar-collapsed', !sidebarOpen);
   syncSelectAll();
 }
 
@@ -2318,6 +2003,21 @@ async function resetTemplate(templateId) {
   } catch(e) {
     showToast('Error resetting template.', 'error');
   }
+}
+
+// ── Shadowing ─────────────────────────────────────────────────────────────────
+function openShadowing(templateId) {
+  const t = allTemplates.find(x => x.id === templateId);
+  if (!t) return;
+  localStorage.setItem('celpip_shadow_json', JSON.stringify({
+    answer:   t.answer || '',
+    category: t.category || '',
+    band:     t.band || '',
+    title:    t.title || '',
+  }));
+  localStorage.removeItem('celpip_shadow_sentences');
+  localStorage.removeItem('celpip_session_dir');
+  window.open('/shadowing', '_blank');
 }
 
 // ── Detail modal ──────────────────────────────────────────────────────────────
@@ -2573,13 +2273,6 @@ function renderQueuePanel(data) {
   }).join('');
 }
 
-// ── Sidebar toggle ────────────────────────────────────────────────────────────
-function toggleSidebar() {
-  sidebarOpen = !sidebarOpen;
-  document.getElementById('sidebar').classList.toggle('collapsed', !sidebarOpen);
-  const bar = document.getElementById('selection-bar');
-  bar.classList.toggle('sidebar-collapsed', !sidebarOpen);
-}
 
 // ── Modal helpers ─────────────────────────────────────────────────────────────
 function openModal(id) {

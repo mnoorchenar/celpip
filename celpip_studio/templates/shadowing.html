@@ -21,24 +21,24 @@
     <button class="btn-gen" onclick="window.location.href='/'">&#8592; Go to Studio</button>
   </div>
 
-  <!-- Loaded state — single column, centred -->
+  <!-- Loaded state -->
   <div id="shadowLoaded" class="shadow-loaded" style="display:none">
 
     <!-- Config row -->
     <div class="shadow-config">
       <div class="config-item">
         <label class="config-label">Voice</label>
-        <select class="voice-select" id="voiceSelect">
-          {% for vid, vlabel in voices.items() %}
-          <option value="{{ vid }}" {% if vid == default_voice %}selected{% endif %}>{{ vlabel }}</option>
-          {% endfor %}
-        </select>
+        <button class="voice-picker-btn" id="voicePickerBtn" onclick="openVoicePicker()">
+          <span id="voicePickerLabel">Loading…</span>
+          <span class="voice-picker-engine" id="voicePickerEngine"></span>
+          <span class="voice-picker-arrow">&#9660;</span>
+        </button>
       </div>
 
       <div class="config-item">
         <label class="config-label">Reps per sentence</label>
         <div class="slider-row">
-          <input type="range" class="speed-slider" id="repSlider" min="0" max="10" step="1" value="1">
+          <input type="range" class="speed-slider" id="repSlider" min="1" max="5" step="1" value="1">
           <span class="speed-val" id="repVal">1×</span>
         </div>
       </div>
@@ -54,34 +54,43 @@
       <div class="config-item">
         <label class="config-label">Pause / word</label>
         <div class="slider-row">
-          <input type="range" class="speed-slider" id="pauseSlider" min="0" max="2" step="0.2" value="1">
-          <span class="speed-val" id="pauseVal">1.0s</span>
+          <input type="range" class="speed-slider" id="pauseSlider" min="0" max="2" step="0.2" value="0.6">
+          <span class="speed-val" id="pauseVal">0.6s</span>
         </div>
       </div>
 
-      <button class="btn-gen" id="genBtn">&#9654;&nbsp; Generate Audio</button>
+      <button class="btn-gen gen-btn--loading" id="genBtn">&#8987;&nbsp; Preparing…</button>
       <span class="gen-error" id="genError" style="display:none"></span>
     </div>
 
-    <!-- Big sentence display -->
+    <!-- Stage -->
     <div class="shadow-stage">
 
       <div class="shadow-sent-counter" id="sentCounter"></div>
 
-      <div class="shadow-sentence-box" id="sentBox">
-        Press <em>Generate Audio</em> to begin.
+      <div class="shadow-sentence-box shadow-sentence-box--idle" id="sentBox">
+        Preparing audio…
+      </div>
+
+      <!-- Pause progress bar -->
+      <div class="pause-bar-track" id="pauseBarTrack">
+        <div class="pause-bar-fill" id="pauseBarFill"></div>
       </div>
 
       <div class="shadow-rep-indicator" id="repIndicator"></div>
 
       <div class="shadow-controls">
-        <button class="ctrl-btn" id="prevBtn" disabled title="Previous sentence">&#9664;&#9664;</button>
-        <button class="ctrl-btn ctrl-btn-play" id="playPauseBtn" disabled title="Play / Pause">&#9654;</button>
-        <button class="ctrl-btn" id="nextBtn" disabled title="Next sentence">&#9654;&#9654;</button>
+        <button class="ctrl-btn" id="prevBtn" disabled title="Previous  (←)">&#9664;&#9664;</button>
+        <button class="ctrl-btn ctrl-btn-play" id="playPauseBtn" disabled title="Play / Pause  (Space)">&#9654;</button>
+        <button class="ctrl-btn" id="nextBtn" disabled title="Next  (→)">&#9654;&#9654;</button>
       </div>
 
       <div class="shadow-done-msg" id="doneMsg">
-        &#10003;&nbsp; All sentences done! Close this tab or go back to record your own voice.
+        &#10003;&nbsp; All sentences done!
+      </div>
+
+      <div class="shadow-kbd-hint" id="kbdHint">
+        <kbd>Space</kbd> play/pause &nbsp;·&nbsp; <kbd>←</kbd><kbd>→</kbd> prev/next &nbsp;·&nbsp; <kbd>R</kbd> regenerate
       </div>
 
     </div>
@@ -89,8 +98,30 @@
   </div>
 
 </div>
+
+<!-- ── Voice Picker Modal ── -->
+<div class="svp-overlay" id="voicePickerModal" onclick="svpOverlayClick(event)">
+  <div class="svp-modal">
+    <div class="svp-header">
+      <div>
+        <h2>&#127897; Select Voice</h2>
+        <p>Choose a voice, preview it, then click <strong>Use This Voice</strong>. Selection is saved automatically.</p>
+      </div>
+      <button class="svp-close" onclick="closeVoicePicker()">&#x2715;</button>
+    </div>
+    <div class="svp-body" id="svpBody">
+      <div class="svp-loading">Loading voices…</div>
+    </div>
+    <div class="svp-footer">
+      <span class="svp-footer-note" id="svpNote"></span>
+      <button class="btn-gen" style="background:#64748b;padding:6px 18px" onclick="closeVoicePicker()">Close</button>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
 
 {% block scripts %}
+<script>var SHADOW_DEFAULT_VOICE = "{{ default_voice }}";</script>
 <script src="{{ url_for('static', filename='js/shadowing.js') }}"></script>
 {% endblock %}

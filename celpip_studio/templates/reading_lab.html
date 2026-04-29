@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+{% block title %}Reading Lab — CELPIP Studio{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/reading_lab.css') }}">
+
+<div class="rl-layout">
+
+  <!-- Top bar -->
+  <div class="rl-topbar">
+    <button class="btn-back" onclick="window.location.href='/'">&#8592; Back</button>
+    <div class="rl-topbar-title">&#128218; Reading Lab</div>
+    <div class="rl-mode-toggle">
+      <button class="rl-mode-btn active" id="modeText" onclick="setMode('text')">&#128462; Paste Text</button>
+      <button class="rl-mode-btn" id="modeYT" onclick="setMode('youtube')">&#9654; YouTube</button>
+    </div>
+    <button class="btn-back" onclick="showInput()" id="btnReload" style="display:none">&#43; New Text</button>
+  </div>
+
+  <!-- Main area -->
+  <div class="rl-main">
+
+    <!-- Text display pane -->
+    <div class="rl-text-pane">
+
+      <!-- Input panel -->
+      <div class="rl-input-panel" id="inputPanel">
+        <!-- Text mode -->
+        <div id="textInputArea">
+          <textarea class="rl-text-input" id="textInput"
+            placeholder="Paste any English text here — an article, email, transcript, or reading passage…"></textarea>
+        </div>
+        <!-- YouTube mode -->
+        <div id="ytInputArea" style="display:none">
+          <div class="rl-url-row">
+            <input type="url" class="rl-url-input" id="ytUrl"
+              placeholder="https://www.youtube.com/watch?v=…">
+          </div>
+        </div>
+        <div class="rl-input-actions">
+          <button class="btn-extract" id="btnExtract" onclick="doExtract()">&#128269; Extract Vocabulary</button>
+          <span class="rl-input-hint" id="inputHint">Highlights phrasal verbs, noun phrases, and content words</span>
+        </div>
+      </div>
+
+      <div class="rl-text-scroll">
+      <div class="rl-text-pane-inner">
+
+        <!-- Empty state -->
+        <div class="rl-empty" id="rlEmpty">
+          <div class="rl-empty-icon">&#128218;</div>
+          <h2>Reading Lab</h2>
+          <p>Paste any English text or a YouTube link above, then click <strong>Extract Vocabulary</strong> to highlight words and phrases.</p>
+        </div>
+
+        <!-- Text with highlights -->
+        <div id="rlTextContent" style="display:none">
+          <div class="rl-text-controls">
+            <span class="rl-text-controls-label" id="statsLabel"></span>
+            <div class="rl-legend">
+              <span><span class="rl-legend-dot" style="background:#fef3c7;border-bottom:2px solid #f59e0b"></span>Phrasal verb</span>
+              <span><span class="rl-legend-dot" style="background:#dbeafe;border-bottom:2px solid #3b82f6"></span>Noun phrase</span>
+              <span><span class="rl-legend-dot" style="background:#d1fae5;border-bottom:2px solid #10b981"></span>Verb</span>
+              <span><span class="rl-legend-dot" style="background:#e0f2fe;border-bottom:2px solid #0ea5e9"></span>Noun</span>
+              <span><span class="rl-legend-dot" style="background:#ede9fe;border-bottom:2px solid #8b5cf6"></span>Adjective</span>
+              <span><span class="rl-legend-dot" style="background:#ffedd5;border-bottom:2px solid #f97316"></span>Adverb</span>
+            </div>
+            <div class="rl-ctrl-btns">
+              <button class="rl-ctrl-btn" id="btnFontSize" onclick="cycleFontSize()" title="Change font size">Aa</button>
+              <button class="rl-ctrl-btn" id="btnAccess" onclick="toggleHighlights()" title="Toggle highlights">&#128065; Access</button>
+            </div>
+          </div>
+          <div class="rl-text-body" id="textBody"></div>
+          <div class="rl-tts-bar hidden" id="ttsBar">
+            <div class="rl-voice-row">
+              <span class="rl-filter-label">Accent</span>
+              <div class="rl-chips" id="accentChips">
+                <button class="rl-chip active" data-val="CA" onclick="setVoiceFilter('accent','CA')">CA</button>
+                <button class="rl-chip" data-val="US" onclick="setVoiceFilter('accent','US')">US</button>
+                <button class="rl-chip" data-val="UK" onclick="setVoiceFilter('accent','UK')">UK</button>
+                <button class="rl-chip" data-val="AU" onclick="setVoiceFilter('accent','AU')">AU</button>
+              </div>
+              <span class="rl-filter-sep"></span>
+              <span class="rl-filter-label">Gender</span>
+              <div class="rl-chips" id="genderChips">
+                <button class="rl-chip" data-val="M" onclick="setVoiceFilter('gender','M')">Male</button>
+                <button class="rl-chip active" data-val="F" onclick="setVoiceFilter('gender','F')">Female</button>
+              </div>
+              <span class="rl-voice-selected" id="voiceSelectedLabel">Clara · Canada · Female</span>
+            </div>
+            <div class="rl-tts-controls">
+              <button class="btn-tts" id="btnTtsPlay" onclick="ttsPlay()">&#9654; Read aloud</button>
+              <button class="btn-tts" id="btnTtsStop" onclick="ttsStop()" style="display:none">&#9632; Stop</button>
+              <span class="rl-tts-sentence" id="ttsSentenceLabel"></span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="rl-sidebar">
+      <div class="rl-sidebar-tabs">
+        <button class="rl-tab active" id="tabSelected" onclick="switchTab('selected')">
+          Selected <span id="selCount">(0)</span>
+        </button>
+        <button class="rl-tab" id="tabBank" onclick="switchTab('bank')">
+          My Bank <span id="bankCount">(0)</span>
+        </button>
+      </div>
+
+      <!-- Selected tab -->
+      <div class="rl-tab-pane active" id="paneSelected">
+        <div class="rl-selected-list" id="selectedList">
+          <div class="rl-selected-empty">
+            Click any highlighted word or phrase in the text to add it here.
+          </div>
+        </div>
+        <div class="rl-actions">
+          <button class="btn-copy-prompt" id="btnCopyPrompt" onclick="copyPrompt()" disabled>
+            &#128203; Copy Prompt
+          </button>
+          <button class="btn-paste-defs" id="btnPasteDefs" onclick="openPasteModal()" disabled>
+            &#128196; Paste Definitions
+          </button>
+        </div>
+      </div>
+
+      <!-- Bank tab -->
+      <div class="rl-tab-pane" id="paneBank">
+        <div class="rl-bank-list" id="bankList">
+          <div class="rl-bank-empty">Your saved vocabulary will appear here.</div>
+        </div>
+        <div class="rl-bank-actions">
+          <button class="btn-copy-bank" onclick="copyBank()">&#128203; Copy All as Text</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Paste definitions modal -->
+<div class="rl-modal-overlay hidden" id="pasteModal" onclick="modalOverlayClick(event)">
+  <div class="rl-modal">
+    <div class="rl-modal-header">
+      <h3>&#128196; Paste Definitions</h3>
+      <button class="rl-modal-close" onclick="closePasteModal()">&#x2715;</button>
+    </div>
+    <div class="rl-modal-body" id="modalBody">
+      <p class="rl-modal-hint">
+        Paste the CSV response from your AI chatbot here. Expected format (one item per line):<br>
+        <code>word,part_of_speech,definition,example_sentence</code>
+      </p>
+      <textarea class="rl-csv-input" id="csvInput"
+        placeholder="resilience,noun,the ability to recover quickly from difficulties,Her resilience helped her bounce back after the setback.&#10;put up with,phrasal verb,to tolerate something unpleasant,I can no longer put up with the constant interruptions."></textarea>
+      <div class="rl-parse-error" id="parseError" style="display:none"></div>
+      <div id="previewArea" style="display:none">
+        <table class="rl-preview-table" id="previewTable">
+          <thead><tr><th>Word</th><th>Type</th><th>Definition</th><th>Example</th></tr></thead>
+          <tbody id="previewBody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="rl-modal-footer">
+      <button class="btn-modal-cancel" onclick="closePasteModal()">Cancel</button>
+      <button class="btn-modal-parse" onclick="parseCsv()">&#128269; Parse</button>
+      <button class="btn-modal-save" id="btnModalSave" onclick="saveToBank()" style="display:none">
+        &#10003; Save to Bank
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="rl-toast" id="rlToast"></div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/reading_lab.js') }}"></script>
+{% endblock %}

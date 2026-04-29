@@ -1,21 +1,6 @@
 {
   "1": [
     [
-      "education_learning",
-      "#5b21b6",
-      "corner"
-    ],
-    [
-      "environment_community",
-      "#53870a",
-      "corner"
-    ],
-    [
-      "communication_conflict",
-      "#b75410",
-      "gradient"
-    ],
-    [
       "cultural_adaptation",
       "#7c3aed",
       "gradient"
@@ -29,19 +14,24 @@
       "communication_conflict",
       "#b75410",
       "corner"
-    ]
-  ],
-  "2": [
+    ],
     [
-      "education_learning",
-      "#1e3a8a",
+      "communication_conflict",
+      "#b75410",
       "none"
     ],
     [
-      "environment_community",
-      "#047857",
+      "communication_conflict",
+      "#b75410",
       "gradient"
     ],
+    [
+      "career_work",
+      "#1e40af",
+      "corner"
+    ]
+  ],
+  "2": [
     [
       "communication_conflict",
       "#0f766e",
@@ -61,19 +51,19 @@
       "communication_conflict",
       "#1b6ca8",
       "none"
-    ]
-  ],
-  "3": [
+    ],
     [
-      "#ffffff",
-      "#1965b5",
+      "communication_conflict",
+      "#0369a1",
       "border"
     ],
     [
-      "#ffffff",
-      "#b45309",
+      "communication_conflict",
+      "#065f46",
       "none"
-    ],
+    ]
+  ],
+  "3": [
     [
       "#ffffff",
       "#0e7490",
@@ -93,19 +83,19 @@
       "#ffffff",
       "#9d174d",
       "none"
-    ]
-  ],
-  "4": [
+    ],
     [
       "#ffffff",
-      "#1e40af",
+      "#7e22ce",
       "diagonal"
     ],
     [
       "#ffffff",
-      "#0369a1",
-      "corner"
-    ],
+      "#1d4ed8",
+      "none"
+    ]
+  ],
+  "4": [
     [
       "#ffffff",
       "#1965b5",
@@ -125,19 +115,19 @@
       "#ffffff",
       "#0d47a1",
       "diagonal"
+    ],
+    [
+      "#ffffff",
+      "#c4185c",
+      "diagonal"
+    ],
+    [
+      "#ffffff",
+      "#166534",
+      "none"
     ]
   ],
   "5": [
-    [
-      "#ffffff",
-      "#9a3412",
-      "none"
-    ],
-    [
-      "#ffffff",
-      "#991b1b",
-      "none"
-    ],
     [
       "#ffffff",
       "#a21caf",
@@ -156,6 +146,16 @@
     [
       "#ffffff",
       "#c2410c",
+      "none"
+    ],
+    [
+      "#ffffff",
+      "#be185d",
+      "none"
+    ],
+    [
+      "#ffffff",
+      "#b45309",
       "none"
     ]
   ]

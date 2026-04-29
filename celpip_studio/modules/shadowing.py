@@ -14,7 +14,25 @@ VOICES = {
     'en-AU-NatashaNeural': 'Natasha (AU, Female)',
 }
 
-DEFAULT_VOICE = 'en-US-GuyNeural'
+DEFAULT_VOICE = 'af_heart'
+
+EDGE_GROUPS = [
+    {'label': 'Canada',         'voices': ['en-CA-LiamNeural', 'en-CA-ClaraNeural']},
+    {'label': 'United States',  'voices': ['en-US-GuyNeural', 'en-US-JennyNeural']},
+    {'label': 'United Kingdom', 'voices': ['en-GB-RyanNeural', 'en-GB-SoniaNeural']},
+    {'label': 'Australia',      'voices': ['en-AU-WilliamNeural', 'en-AU-NatashaNeural']},
+]
+
+KOKORO_SUB_GROUPS = [
+    {'label': 'US Female', 'prefix': 'af_'},
+    {'label': 'US Male',   'prefix': 'am_'},
+    {'label': 'UK Female', 'prefix': 'bf_'},
+    {'label': 'UK Male',   'prefix': 'bm_'},
+]
+
+
+def is_kokoro_voice(voice_id):
+    return voice_id.startswith(('af_', 'am_', 'bf_', 'bm_'))
 
 
 def split_sentences(text):
@@ -31,26 +49,35 @@ async def _generate_one(text, path, voice):
 
 def generate_shadowing_audio(sentences, audio_dir, voice=DEFAULT_VOICE):
     """
-    Generate one MP3 per sentence sequentially.
-    Skips failed sentences and returns only successful ones.
+    Generate one audio file per sentence.
+    Edge TTS voices → .mp3, Kokoro voices → .wav
     """
     os.makedirs(audio_dir, exist_ok=True)
 
-    if sys.platform == 'win32':
+    use_kokoro = is_kokoro_voice(voice)
+
+    if not use_kokoro and sys.platform == 'win32':
         asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
     successful = []
     for i, sentence in enumerate(sentences):
-        filename = f'sentence_{i:03d}.mp3'
+        ext      = 'wav' if use_kokoro else 'mp3'
+        filename = f'sentence_{i:03d}.{ext}'
         path     = os.path.join(audio_dir, filename)
 
-        # Skip if already generated
         if os.path.exists(path) and os.path.getsize(path) > 0:
             successful.append({'index': i, 'text': sentence, 'filename': filename})
             continue
 
         try:
-            asyncio.run(_generate_one(sentence, path, voice))
+            if use_kokoro:
+                from modules import kokoro_tts
+                wav_bytes = kokoro_tts.to_wav_bytes(sentence, voice)
+                with open(path, 'wb') as f:
+                    f.write(wav_bytes)
+            else:
+                asyncio.run(_generate_one(sentence, path, voice))
+
             if os.path.exists(path) and os.path.getsize(path) > 0:
                 successful.append({'index': i, 'text': sentence, 'filename': filename})
             else:

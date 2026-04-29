@@ -1,4 +1,6 @@
 /* CELPIP Shadowing Practice */
+/* Tell browsers this page is light-only — prevents forced dark mode from recolouring elements */
+:root { color-scheme: light; }
 
 .shadow-layout {
   display: flex;
@@ -144,6 +146,7 @@
 }
 .btn-gen:hover { background: var(--primary-d); }
 .btn-gen:disabled { opacity: .5; cursor: not-allowed; }
+.btn-gen.gen-btn--loading { background: #64748b; cursor: wait; }
 .gen-error { font-size: 12px; color: var(--red); }
 
 /* ── Stage ──────────────────────────────────────────────────────── */
@@ -178,17 +181,55 @@
   width: 100%;
   max-width: 800px;
   min-height: 110px;
+  /* flex centres the single <p> child vertically */
   display: flex;
   align-items: center;
   justify-content: center;
   transition: border-color .2s;
 }
-.shadow-sentence-box.idle {
+/* Single flex child — text and vocab spans flow inline naturally inside it */
+.shadow-sentence-box .sent-text {
+  width: 100%;
+  margin: 0;
+  text-align: center;
+  white-space: normal;
+  word-break: break-word;
+}
+.shadow-sentence-box--idle {
   color: var(--muted);
   font-style: italic;
   font-size: 15px;
   border-color: var(--border);
   background: var(--surface);
+}
+
+/* Vocabulary highlight — bold colour only, no decoration */
+.vocab-hl {
+  color: #7c3aed;
+  font-weight: 800;
+}
+
+/* ── Pause progress bar ─────────────────────────────────────────── */
+.pause-bar-track {
+  width: 100%;
+  max-width: 800px;
+  height: 7px;
+  /* Blue-tinted track so fill and track are always distinguishable */
+  background: #bfdbfe;
+  border: 1px solid #93c5fd;
+  border-radius: 4px;
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity .2s;
+}
+.pause-bar-track.active { opacity: 1; }
+.pause-bar-fill {
+  height: 100%;
+  width: 0%;
+  background: #2563eb;
+  border-radius: 4px;
+  /* Glow keeps the bar visible even when forced dark mode darkens the track */
+  box-shadow: 0 0 8px rgba(37, 99, 235, 0.7);
 }
 
 .shadow-rep-indicator {
@@ -252,3 +293,204 @@
   display: none;
 }
 .shadow-done-msg.visible { display: block; }
+
+/* ── Keyboard shortcut hint ─────────────────────────────────────── */
+.shadow-kbd-hint {
+  display: none;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--muted);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.shadow-kbd-hint kbd {
+  display: inline-block;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 10px;
+  font-family: inherit;
+  color: var(--text);
+  box-shadow: 0 1px 0 var(--border);
+}
+
+/* ── Voice picker button ──────────────────────────────────────────── */
+.voice-picker-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 5px 10px;
+  outline: none;
+  transition: border-color .15s, background .15s;
+  white-space: nowrap;
+  max-width: 240px;
+}
+.voice-picker-btn:hover { border-color: var(--primary); background: #eff6ff; }
+.voice-picker-engine {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--primary);
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 4px;
+  padding: 1px 5px;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  flex-shrink: 0;
+}
+.voice-picker-arrow { font-size: 9px; color: var(--muted); flex-shrink: 0; }
+
+/* ── Voice picker modal ───────────────────────────────────────────── */
+.svp-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.48);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+}
+.svp-overlay.open { display: flex; }
+
+.svp-modal {
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 24px 64px rgba(0,0,0,.22);
+  display: flex;
+  flex-direction: column;
+  max-height: 84vh;
+  width: 600px;
+  overflow: hidden;
+}
+
+.svp-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 20px 24px 14px;
+  border-bottom: 1px solid #e2e8f0;
+  flex-shrink: 0;
+}
+.svp-header h2 { font-size: 16px; font-weight: 700; color: #1e293b; margin: 0; }
+.svp-header p  { font-size: 12px; color: #64748b; margin: 4px 0 0; }
+.svp-close {
+  background: none; border: none; color: #94a3b8; cursor: pointer;
+  font-size: 18px; padding: 2px 6px; border-radius: 4px; line-height: 1;
+  flex-shrink: 0;
+}
+.svp-close:hover { color: #1e293b; }
+
+.svp-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 18px 22px;
+}
+.svp-body::-webkit-scrollbar { width: 5px; }
+.svp-body::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+.svp-footer {
+  padding: 12px 20px;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  gap: 12px;
+}
+.svp-footer-note {
+  font-size: 11px;
+  color: #64748b;
+  flex: 1;
+}
+
+.svp-loading { text-align: center; color: #94a3b8; font-size: 13px; padding: 24px; }
+
+.svp-engine { margin-bottom: 6px; }
+.svp-engine-header {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.svp-engine-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e293b;
+}
+.svp-engine-desc {
+  font-size: 11px;
+  color: #94a3b8;
+}
+.svp-engine-desc em { color: #ef4444; font-style: normal; }
+
+.svp-sep { border: none; border-top: 1px solid #e2e8f0; margin: 14px 0; }
+
+.svp-group { margin-bottom: 12px; }
+.svp-group-title {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .6px;
+  color: #94a3b8;
+  margin-bottom: 6px;
+  padding-left: 2px;
+}
+
+.svp-voice-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  margin-bottom: 5px;
+  transition: border-color .15s, background .15s;
+}
+.svp-voice-row.svp-active {
+  border-color: var(--primary);
+  background: #eff6ff;
+}
+.svp-voice-name { flex: 1; font-size: 13px; font-weight: 500; color: #1e293b; }
+
+.svp-play-btn {
+  width: 28px;
+  height: 26px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  cursor: pointer;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all .15s;
+}
+.svp-play-btn:hover:not(:disabled) { background: #f1f5f9; border-color: #94a3b8; }
+.svp-play-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+.svp-use-btn {
+  padding: 3px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--primary);
+  background: #fff;
+  color: var(--primary);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all .15s;
+  flex-shrink: 0;
+}
+.svp-use-btn:hover:not(:disabled) { background: var(--primary); color: #fff; }
+.svp-use-btn.svp-use-active { background: var(--primary); color: #fff; pointer-events: none; }
+.svp-use-btn:disabled { opacity: .4; cursor: not-allowed; }

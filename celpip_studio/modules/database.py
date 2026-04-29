@@ -15,7 +15,7 @@ def _conn():
 
 
 def init_db():
-    """Ensure the template_answers table exists (no-op if already created)."""
+    """Ensure all tables exist (no-op if already created)."""
     with _conn() as c:
         c.execute('''
             CREATE TABLE IF NOT EXISTS template_answers (
@@ -40,6 +40,80 @@ def init_db():
                 UNIQUE(part, category, title)
             )
         ''')
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS vocab_sources (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                source_type TEXT    NOT NULL DEFAULT 'text',
+                source_url  TEXT,
+                raw_text    TEXT    NOT NULL,
+                title       TEXT,
+                created_at  TEXT    NOT NULL
+            )
+        ''')
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS vocab_bank (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                source_id   INTEGER REFERENCES vocab_sources(id) ON DELETE CASCADE,
+                word        TEXT    NOT NULL,
+                item_type   TEXT    NOT NULL DEFAULT 'word',
+                word_type   TEXT    NOT NULL DEFAULT '',
+                definition  TEXT    NOT NULL DEFAULT '',
+                example     TEXT    NOT NULL DEFAULT '',
+                created_at  TEXT    NOT NULL
+            )
+        ''')
+        c.commit()
+
+
+# ── Vocab Bank ────────────────────────────────────────────────────────────────
+
+def save_vocab_source(source_type, source_url, raw_text, title=None):
+    now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    with _conn() as c:
+        cur = c.execute(
+            'INSERT INTO vocab_sources (source_type, source_url, raw_text, title, created_at) VALUES (?,?,?,?,?)',
+            (source_type, source_url, raw_text, title, now)
+        )
+        c.commit()
+        return cur.lastrowid
+
+
+def save_vocab_items(source_id, items):
+    """items: list of {word, item_type, word_type, definition, example}"""
+    now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    with _conn() as c:
+        c.executemany(
+            '''INSERT INTO vocab_bank
+               (source_id, word, item_type, word_type, definition, example, created_at)
+               VALUES (?,?,?,?,?,?,?)''',
+            [(source_id,
+              it['word'],
+              it.get('item_type', 'word'),
+              it.get('word_type', ''),
+              it.get('definition', ''),
+              it.get('example', ''),
+              now) for it in items]
+        )
+        c.commit()
+
+
+def get_vocab_bank(limit=500):
+    with _conn() as c:
+        rows = c.execute(
+            '''SELECT vb.id, vb.word, vb.item_type, vb.word_type,
+                      vb.definition, vb.example, vb.created_at,
+                      vs.source_type, vs.title, vs.source_url
+               FROM vocab_bank vb
+               LEFT JOIN vocab_sources vs ON vs.id = vb.source_id
+               ORDER BY vb.created_at DESC LIMIT ?''',
+            (limit,)
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+
+def delete_vocab_item(item_id):
+    with _conn() as c:
+        c.execute('DELETE FROM vocab_bank WHERE id=?', (item_id,))
         c.commit()
 
 

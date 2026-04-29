@@ -2,6 +2,7 @@
 CELPIP Practice Studio - Flask Web Application
 """
 
+import asyncio
 import os
 import sys
 import uuid
@@ -44,6 +45,25 @@ db.init_db()
 # ── Global stores ──────────────────────────────────────────────────────────────
 jobs            = {}        # job_id -> job state dict
 shadow_sessions = {}        # sess_id -> {audio_dir, session_dir}
+
+_JOB_TTL = 24 * 3600  # seconds to keep completed/errored jobs in memory
+
+
+def _cleanup_old_jobs():
+    """Remove done/errored jobs older than _JOB_TTL to prevent unbounded growth."""
+    cutoff = _time.time() - _JOB_TTL
+    stale = [jid for jid, j in list(jobs.items())
+             if j.get('done') and j.get('created_at', 0) < cutoff]
+    for jid in stale:
+        jobs.pop(jid, None)
+
+
+def _int(val, default=1):
+    """Safe int cast — returns default on None/bad input instead of raising."""
+    try:
+        return int(val)
+    except (TypeError, ValueError):
+        return default
 
 # ── Video generation queue ──────────────────────────────────────────────────────
 _job_queue    = _queue.Queue()   # FIFO queue of job_ids
@@ -96,6 +116,7 @@ def _queue_worker():
             with _queue_lock:
                 if job_id in _queue_order:
                     _queue_order.remove(job_id)
+            _cleanup_old_jobs()
             _job_queue.task_done()
 
 
@@ -224,11 +245,11 @@ def preview_init():
         'question':    data.get('question', ''),
         'answer':      data.get('answer', ''),
         'vocab':       data.get('vocab', []),
-        'task_num':    int(data.get('task_num', 1)),
+        'task_num':    _int(data.get('task_num', 1)),
         'band':        data.get('band', '7_8'),
         'category':    data.get('category', ''),
         'title':       data.get('title', ''),
-        'seeds':       {int(k): v for k, v in (data.get('seeds') or {}).items()}
+        'seeds':       {_int(k): v for k, v in (data.get('seeds') or {}).items()}
                        or style_gen.default_seeds(),
         'font_scales': font_scales,
         'thumb_seed':  data.get('thumb_seed', None),
@@ -243,8 +264,8 @@ def preview_frame():
     """Render a single preview frame and return it as PNG."""
     import io as _io
     psid     = request.args.get('psid', '')
-    section  = int(request.args.get('section', 1))
-    slide    = int(request.args.get('slide', 0))
+    section  = _int(request.args.get('section', 1))
+    slide    = _int(request.args.get('slide', 0), default=0)
     seed     = request.args.get('seed')
 
     sess = preview_sessions.get(psid)
@@ -481,14 +502,17 @@ def generate_video():
         if not data.get(field):
             return jsonify({'error': f'Missing field: {field}'}), 400
 
-    task_num    = int(data['task_num'])
+    try:
+        task_num = int(data['task_num'])
+    except (TypeError, ValueError):
+        return jsonify({'error': 'task_num must be an integer'}), 400
     band        = data.get('band') or DEFAULT_BAND
     category    = data.get('category', 'General')
     title       = data.get('title', '') or category
     # Always pick a fresh random voice per job (excludes am_adam)
     voice = kokoro_tts.random_voice()
     _seeds_raw    = data.get('seeds') or {}
-    section_seeds = {int(k): v for k, v in _seeds_raw.items()} if _seeds_raw \
+    section_seeds = {_int(k): v for k, v in _seeds_raw.items()} if _seeds_raw \
                     else style_gen.default_seeds()
     thumb_seed  = data.get('thumb_seed', None)
     thumb_color = data.get('thumb_color', None) or None
@@ -662,12 +686,15 @@ def prepare_shadowing():
         if not data.get(field):
             return jsonify({'error': f'Missing field: {field}'}), 400
 
-    task_num  = int(data['task_num'])
+    try:
+        task_num = int(data['task_num'])
+    except (TypeError, ValueError):
+        return jsonify({'error': 'task_num must be an integer'}), 400
     band      = data.get('band') or DEFAULT_BAND
     category  = data.get('category', 'General')
     title     = data.get('title', '') or category
     voice     = data.get('voice', shadow_mod.DEFAULT_VOICE)
-    if voice not in shadow_mod.VOICES:
+    if not shadow_mod.is_kokoro_voice(voice) and voice not in shadow_mod.VOICES:
         voice = shadow_mod.DEFAULT_VOICE
 
     task_info = TASK_DEFAULTS.get(task_num, TASK_DEFAULTS[1])
@@ -690,14 +717,16 @@ def prepare_shadowing():
         print(f'[Prepare] PDF error: {e}', file=sys.stderr)
 
     # Audio — skip if files already exist
-    audio_dir     = output_dirs.shadowing_dir(session_dir)
-    sentences     = shadow_mod.split_sentences(data['answer'])
-    existing_mp3s = sorted(f for f in os.listdir(audio_dir)
-                           if f.endswith('.mp3')) if os.path.isdir(audio_dir) else []
+    audio_dir      = output_dirs.shadowing_dir(session_dir)
+    sentences      = shadow_mod.split_sentences(data['answer'])
+    existing_audio = sorted(
+        f for f in os.listdir(audio_dir)
+        if f.endswith('.mp3') or f.endswith('.wav')
+    ) if os.path.isdir(audio_dir) else []
 
-    if existing_mp3s:
+    if existing_audio:
         audio_files = [{'index': i, 'text': s, 'filename': f}
-                       for i, (s, f) in enumerate(zip(sentences, existing_mp3s))]
+                       for i, (s, f) in enumerate(zip(sentences, existing_audio))]
     else:
         try:
             audio_files = shadow_mod.generate_shadowing_audio(sentences, audio_dir, voice)
@@ -713,6 +742,67 @@ def prepare_shadowing():
         'session_dir': session_dir,
         'pdf_path':    pdf_path,
         'audio_dir':   audio_dir,
+        'sentences':   audio_files,
+        'audio_count': len(audio_files),
+    })
+
+
+# ── Shadowing generate (called from standalone shadowing page) ────────────────
+@app.route('/api/shadowing/generate', methods=['POST'])
+def shadowing_generate():
+    data = request.get_json()
+    if not data or not data.get('answer'):
+        return jsonify({'error': 'Missing answer'}), 400
+
+    answer     = data['answer']
+    voice      = data.get('voice', shadow_mod.DEFAULT_VOICE)
+    band       = data.get('band') or DEFAULT_BAND
+    category   = data.get('category', 'General')
+    title      = data.get('title', '') or category
+    task_num   = _int(data.get('task_num', 1))
+    session_dir = data.get('session_dir', '')
+
+    force_regen = bool(data.get('force_regen', False))
+
+    if not shadow_mod.is_kokoro_voice(voice) and voice not in shadow_mod.VOICES:
+        voice = shadow_mod.DEFAULT_VOICE
+
+    if not session_dir or not os.path.isdir(session_dir):
+        session_dir = output_dirs.create_session_dir(task_num, band, category, title)
+
+    audio_dir = output_dirs.shadowing_dir(session_dir)
+
+    # Delete existing audio when caller requests a forced regeneration
+    if force_regen and os.path.isdir(audio_dir):
+        for fname in os.listdir(audio_dir):
+            if fname.endswith('.mp3') or fname.endswith('.wav'):
+                try:
+                    os.remove(os.path.join(audio_dir, fname))
+                except Exception:
+                    pass
+
+    sentences      = shadow_mod.split_sentences(answer)
+    existing_audio = sorted(
+        f for f in os.listdir(audio_dir)
+        if f.endswith('.mp3') or f.endswith('.wav')
+    ) if os.path.isdir(audio_dir) else []
+
+    if existing_audio:
+        audio_files = [{'index': i, 'text': s, 'filename': f}
+                       for i, (s, f) in enumerate(zip(sentences, existing_audio))]
+    else:
+        try:
+            audio_files = shadow_mod.generate_shadowing_audio(sentences, audio_dir, voice)
+        except Exception as e:
+            print(f'[Shadowing] Audio error: {e}', file=sys.stderr)
+            return jsonify({'error': f'Audio generation failed: {e}'}), 500
+
+    session_id = uuid.uuid4().hex
+    shadow_sessions[session_id] = {'audio_dir': audio_dir, 'session_dir': session_dir}
+
+    return jsonify({
+        'session_id':  session_id,
+        'session_dir': session_dir,
         'sentences':   audio_files,
         'audio_count': len(audio_files),
     })
@@ -741,11 +831,88 @@ def shadowing_rehydrate():
     return jsonify({'session_id': sess_id})
 
 
-# ── Shadowing audio serving ────────────────────────────────────────────────────
+# ── Shadowing voices API ───────────────────────────────────────────────────────
+@app.route('/api/shadowing/voices')
+def shadowing_voices():
+    edge_sub_groups = []
+    for grp in shadow_mod.EDGE_GROUPS:
+        voices_list = [
+            {'id': vid, 'label': shadow_mod.VOICES[vid]}
+            for vid in grp['voices'] if vid in shadow_mod.VOICES
+        ]
+        edge_sub_groups.append({'label': grp['label'], 'voices': voices_list})
+
+    kv = kokoro_tts.KOKORO_VOICES
+    kokoro_sub_groups = []
+    for grp in shadow_mod.KOKORO_SUB_GROUPS:
+        voices_list = [
+            {'id': vid, 'label': kv[vid]}
+            for vid in kv if vid.startswith(grp['prefix'])
+        ]
+        kokoro_sub_groups.append({'label': grp['label'], 'voices': voices_list})
+
+    return jsonify({
+        'groups': [
+            {
+                'engine': 'kokoro',
+                'label': 'Kokoro TTS',
+                'description': 'Local AI voices — no internet required',
+                'available': kokoro_tts.is_available(),
+                'sub_groups': kokoro_sub_groups,
+            },
+            {
+                'engine': 'edge',
+                'label': 'Edge TTS',
+                'description': 'Neural voices — internet required',
+                'sub_groups': edge_sub_groups,
+            },
+        ],
+        'default': shadow_mod.DEFAULT_VOICE,
+    })
+
+
+_EDGE_SAMPLE_TEXT = (
+    "Hello! My name is {name}, and I'm here to help you prepare for the CELPIP exam. "
+    "Let me give you some advice on how to improve your speaking skills."
+)
+_EDGE_SAMPLES_DIR = os.path.join(DATA_DIR, 'edge_voice_samples')
+os.makedirs(_EDGE_SAMPLES_DIR, exist_ok=True)
+
+
+@app.route('/api/shadowing/edge-sample/<voice_id>')
+def shadowing_edge_sample(voice_id):
+    """Return a cached MP3 sample for the given Edge TTS voice."""
+    if voice_id not in shadow_mod.VOICES:
+        return jsonify({'error': 'Unknown voice'}), 404
+
+    cache_path = os.path.join(_EDGE_SAMPLES_DIR, f'{voice_id}.mp3')
+    if os.path.exists(cache_path) and os.path.getsize(cache_path) > 0:
+        return send_file(cache_path, mimetype='audio/mpeg')
+
+    try:
+        label      = shadow_mod.VOICES[voice_id]
+        first_name = label.split(' ')[0]
+        text       = _EDGE_SAMPLE_TEXT.format(name=first_name)
+
+        if sys.platform == 'win32':
+            asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
+        import edge_tts
+
+        async def _gen():
+            tts = edge_tts.Communicate(text, voice_id)
+            await tts.save(cache_path)
+
+        asyncio.run(_gen())
+        return send_file(cache_path, mimetype='audio/mpeg')
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+# ── Shadowing page + audio serving ────────────────────────────────────────────
 @app.route('/shadowing')
 def shadowing():
     return render_template('shadowing.html',
-                           voices=shadow_mod.VOICES,
                            default_voice=shadow_mod.DEFAULT_VOICE)
 
 
@@ -754,7 +921,7 @@ def shadowing_audio(session_id, filename):
     import re
     if not re.match(r'^[a-f0-9]{32}$', session_id):
         return 'Invalid session', 400
-    if not re.match(r'^sentence_\d{3}\.mp3$', filename):
+    if not re.match(r'^sentence_\d{3}\.(mp3|wav)$', filename):
         return 'Invalid filename', 400
     sess = shadow_sessions.get(session_id)
     if not sess:
@@ -762,7 +929,8 @@ def shadowing_audio(session_id, filename):
     path = os.path.join(sess['audio_dir'], filename)
     if not os.path.exists(path):
         return 'File not found', 404
-    return send_file(path, mimetype='audio/mpeg')
+    mimetype = 'audio/wav' if filename.endswith('.wav') else 'audio/mpeg'
+    return send_file(path, mimetype=mimetype)
 
 
 @app.route('/api/jobs/<job_id>/open-folder', methods=['POST'])
@@ -961,7 +1129,7 @@ def api_youtube_meta_raw():
     """Generate YouTube metadata from raw session data (no DB record needed)."""
     import json as _json
     data = request.get_json() or {}
-    task_num  = int(data.get('task_num', 1))
+    task_num  = _int(data.get('task_num', 1))
     task_info = TASK_DEFAULTS.get(task_num, TASK_DEFAULTS[1])
     part_name = task_info['name']
     band      = data.get('band', '7_8')
@@ -1444,6 +1612,105 @@ def api_margin_preview_frame():
     buf.seek(0)
     from flask import Response
     return Response(buf.read(), mimetype='image/jpeg')
+
+
+# ── Reading Lab ────────────────────────────────────────────────────────────────
+from modules import reading_lab as rl_mod
+
+_rl_sessions = {}   # session_id -> audio_dir
+
+
+@app.route('/reading-lab')
+def reading_lab():
+    return render_template('reading_lab.html')
+
+
+@app.route('/api/reading-lab/extract', methods=['POST'])
+def rl_extract():
+    data = request.get_json(force=True)
+    text = (data.get('text') or '').strip()
+    if not text:
+        return jsonify({'error': 'No text provided'}), 400
+    items    = rl_mod.extract_items(text)
+    segments = rl_mod.build_segments(text, items)
+    return jsonify({'segments': segments, 'item_count': len(items)})
+
+
+@app.route('/api/reading-lab/youtube', methods=['POST'])
+def rl_youtube():
+    data = request.get_json(force=True)
+    url  = (data.get('url') or '').strip()
+    if not url:
+        return jsonify({'error': 'No URL provided'}), 400
+    try:
+        text, video_id = rl_mod.get_youtube_transcript(url)
+    except Exception as exc:
+        return jsonify({'error': str(exc)}), 400
+    return jsonify({'text': text, 'title': f'YouTube: {video_id}'})
+
+
+@app.route('/api/reading-lab/tts/generate', methods=['POST'])
+def rl_tts_generate():
+    data      = request.get_json(force=True)
+    text      = (data.get('text') or '').strip()
+    voice     = data.get('voice', shadow_mod.DEFAULT_VOICE)
+    if not text:
+        return jsonify({'error': 'No text'}), 400
+    if not shadow_mod.is_kokoro_voice(voice) and voice not in shadow_mod.VOICES:
+        voice = shadow_mod.DEFAULT_VOICE
+
+    sess_id   = str(uuid.uuid4())
+    audio_dir = os.path.join(TEMP_DIR, 'rl_tts', sess_id)
+    os.makedirs(audio_dir, exist_ok=True)
+
+    sentences = shadow_mod.split_sentences(text)
+    try:
+        audio_files = shadow_mod.generate_shadowing_audio(sentences, audio_dir, voice)
+    except Exception as exc:
+        return jsonify({'error': str(exc)}), 500
+
+    _rl_sessions[sess_id] = {'audio_dir': audio_dir}
+    return jsonify({'session_id': sess_id, 'sentences': audio_files})
+
+
+@app.route('/api/reading-lab/audio/<session_id>/<filename>')
+def rl_audio(session_id, filename):
+    sess = _rl_sessions.get(session_id)
+    if not sess:
+        return jsonify({'error': 'Session not found'}), 404
+    path = os.path.join(sess['audio_dir'], secure_filename(filename))
+    if not os.path.exists(path):
+        return jsonify({'error': 'File not found'}), 404
+    mime = 'audio/wav' if filename.endswith('.wav') else 'audio/mpeg'
+    return send_file(path, mimetype=mime)
+
+
+@app.route('/api/reading-lab/save', methods=['POST'])
+def rl_save():
+    data        = request.get_json(force=True)
+    source_type = data.get('source_type', 'text')
+    source_url  = data.get('source_url')
+    raw_text    = (data.get('text') or '').strip()
+    title       = data.get('title')
+    items       = data.get('items', [])
+    if not raw_text:
+        return jsonify({'error': 'No text'}), 400
+    source_id = db.save_vocab_source(source_type, source_url, raw_text, title)
+    if items:
+        db.save_vocab_items(source_id, items)
+    return jsonify({'ok': True, 'source_id': source_id, 'saved': len(items)})
+
+
+@app.route('/api/reading-lab/bank', methods=['GET'])
+def rl_bank():
+    items = db.get_vocab_bank()
+    return jsonify({'items': items})
+
+
+@app.route('/api/reading-lab/bank/<int:item_id>', methods=['DELETE'])
+def rl_bank_delete(item_id):
+    db.delete_vocab_item(item_id)
+    return jsonify({'ok': True})
 
 
 if __name__ == '__main__':
