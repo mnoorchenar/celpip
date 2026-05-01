@@ -154,36 +154,11 @@ def update_template_pdf(record_id, pdf_path):
         c.commit()
 
 
-def mark_template_posted(record_id, youtube_url=None, youtube_video_id=None):
-    now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    with _conn() as c:
-        c.execute(
-            "UPDATE template_answers "
-            "SET youtube_status='posted', youtube_url=?, youtube_video_id=?, updated_at=? WHERE id=?",
-            (youtube_url, youtube_video_id, now, record_id)
-        )
-        c.commit()
-
-
-def unmark_template_posted(record_id):
-    with _conn() as c:
-        c.execute(
-            "UPDATE template_answers "
-            "SET youtube_status='not_posted', youtube_url=NULL, youtube_video_id=NULL "
-            "WHERE id=?",
-            (record_id,)
-        )
-        c.commit()
-
-
 def reset_template(record_id):
-    """Clear video + YouTube data so the template can be regenerated."""
     with _conn() as c:
         c.execute(
             "UPDATE template_answers "
-            "SET video_status='not_generated', video_path=NULL, "
-            "    pdf_path=NULL, youtube_status='not_posted', "
-            "    youtube_url=NULL, youtube_video_id=NULL "
+            "SET video_status='not_generated', video_path=NULL, pdf_path=NULL "
             "WHERE id=?",
             (record_id,)
         )
@@ -193,7 +168,7 @@ def reset_template(record_id):
 # ── Template Answers — Read ────────────────────────────────────────────────────
 
 def get_templates(category=None, frequency_label=None,
-                  video_status=None, youtube_status=None, search=None):
+                  video_status=None, search=None):
     conds, params = [], []
     if category:
         conds.append('category=?');        params.append(category)
@@ -201,8 +176,6 @@ def get_templates(category=None, frequency_label=None,
         conds.append('frequency_label=?'); params.append(frequency_label)
     if video_status:
         conds.append('video_status=?');    params.append(video_status)
-    if youtube_status:
-        conds.append('youtube_status=?');  params.append(youtube_status)
     if search:
         conds.append('(title LIKE ? OR question LIKE ?)')
         params += [f'%{search}%', f'%{search}%']
@@ -230,9 +203,6 @@ def get_template_stats():
         generated = c.execute(
             "SELECT COUNT(*) FROM template_answers WHERE video_status='generated'"
         ).fetchone()[0]
-        posted    = c.execute(
-            "SELECT COUNT(*) FROM template_answers WHERE youtube_status='posted'"
-        ).fetchone()[0]
         cats      = c.execute(
             'SELECT COUNT(DISTINCT category) FROM template_answers'
         ).fetchone()[0]
@@ -244,8 +214,6 @@ def get_template_stats():
         'with_answers':  with_answers,
         'generated':     generated,
         'not_generated': total - generated,
-        'posted':        posted,
-        'not_posted':    total - posted,
         'categories':    cats,
     }
 

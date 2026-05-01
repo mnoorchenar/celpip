@@ -5,3 +5,11 @@
 *.log
 .vscode/
 *.tmp
+
+# Generated media output (videos, audio per DB record)
+celpip_studio/output/
+celpip_studio/temp/
+
+# OAuth credentials — never commit
+client_secrets.json
+**/client_secrets.json

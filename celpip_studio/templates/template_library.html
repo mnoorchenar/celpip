@@ -81,9 +81,6 @@ table.tl-table  { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
                   margin-right: 5px; }
 .sd-generated   { background: #22c55e; }
 .sd-not_generated { background: #374151; }
-.sd-posted      { background: #3b82f6; }
-.sd-not_posted  { background: #374151; }
-
 /* Row actions */
 .td-actions     { white-space: nowrap; }
 .btn-tl         { padding: 4px 10px; border-radius: 6px; border: 1px solid #333;
@@ -94,35 +91,6 @@ table.tl-table  { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
 .btn-tl.btn-generate:hover { background: #22c55e; color: #000; }
 .btn-tl.btn-regen     { border-color: #f97316; color: #f97316; }
 .btn-tl.btn-regen:hover { background: #f97316; color: #000; }
-.btn-tl.btn-posted    { border-color: #3b82f6; color: #3b82f6; }
-.btn-tl.btn-posted:hover { background: #3b82f6; color: #fff; }
-.btn-tl.btn-unpost    { border-color: #6b7280; color: #6b7280; }
-.btn-tl.btn-unpost:hover { background: #6b7280; color: #fff; }
-.btn-tl.btn-ytinfo    { border-color: #ef4444; color: #ef4444; }
-.btn-tl.btn-ytinfo:hover { background: #ef4444; color: #fff; }
-
-/* Mark-posted modal */
-.mp-overlay     { position: fixed; inset: 0; background: rgba(0,0,0,.75);
-                  display: flex; align-items: center; justify-content: center;
-                  z-index: 1200; }
-.mp-overlay.hidden { display: none; }
-.mp-modal       { background: #1a1a2e; border: 1px solid #333; border-radius: 14px;
-                  padding: 28px; width: 480px; max-width: 95vw; }
-.mp-modal h3    { margin: 0 0 18px; color: #ddd; font-size: 1.1rem; }
-.mp-modal label { display: block; font-size: 0.8rem; color: #888; margin-bottom: 4px; }
-.mp-modal input { width: 100%; background: #12121e; border: 1px solid #333;
-                  border-radius: 6px; padding: 8px 12px; color: #ddd;
-                  font-size: 0.88rem; margin-bottom: 14px; }
-.mp-modal input:focus { outline: none; border-color: #3b82f6; }
-.mp-actions     { display: flex; gap: 10px; justify-content: flex-end; margin-top: 6px; }
-.btn-confirm    { padding: 8px 20px; background: #3b82f6; color: #fff; border: none;
-                  border-radius: 8px; cursor: pointer; font-size: 0.88rem; }
-.btn-confirm:hover { background: #2563eb; }
-.btn-cancel-mp  { padding: 8px 16px; background: transparent; color: #888;
-                  border: 1px solid #444; border-radius: 8px; cursor: pointer;
-                  font-size: 0.88rem; }
-.btn-cancel-mp:hover { color: #ddd; }
-
 /* Loading overlay */
 .tl-loading     { text-align: center; padding: 60px; color: #555; font-size: 0.9rem; }
 </style>
@@ -138,8 +106,6 @@ table.tl-table  { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
     <div class="tl-stat"><div class="tl-stat-val" id="statTotal">—</div><div class="tl-stat-lbl">Total</div></div>
     <div class="tl-stat"><div class="tl-stat-val" id="statGenerated" style="color:#22c55e">—</div><div class="tl-stat-lbl">Generated</div></div>
     <div class="tl-stat"><div class="tl-stat-val" id="statNotGen" style="color:#6b7280">—</div><div class="tl-stat-lbl">Not Generated</div></div>
-    <div class="tl-stat"><div class="tl-stat-val" id="statPosted" style="color:#3b82f6">—</div><div class="tl-stat-lbl">Posted</div></div>
-    <div class="tl-stat"><div class="tl-stat-val" id="statNotPosted" style="color:#f97316">—</div><div class="tl-stat-lbl">Not Posted</div></div>
     <div class="tl-stat"><div class="tl-stat-val" id="statCats" style="color:#a78bfa">—</div><div class="tl-stat-lbl">Categories</div></div>
   </div>
 
@@ -173,14 +139,6 @@ table.tl-table  { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
       </div>
     </div>
 
-    <div class="tl-filter-row">
-      <span class="tl-filter-lbl">YouTube</span>
-      <div class="tl-pills" id="ytFilterPills">
-        <button class="tl-pill active" data-val="">All</button>
-        <button class="tl-pill" data-val="posted">&#9654; Posted</button>
-        <button class="tl-pill" data-val="not_posted">&#9711; Not Posted</button>
-      </div>
-    </div>
 
   </div>
 
@@ -209,7 +167,6 @@ table.tl-table  { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
           <th>Title</th>
           <th>Frequency</th>
           <th>Video</th>
-          <th>YouTube</th>
           <th>Actions</th>
         </tr>
       </thead>
@@ -218,72 +175,6 @@ table.tl-table  { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
     <div class="tl-loading" id="tlEmpty" style="display:none">No templates match the current filters.</div>
   </div>
 
-</div>
-
-<!-- YouTube Info modal (reuse browse.html pattern) -->
-<div class="ytinfo-overlay hidden" id="ytInfoOverlay">
-  <div class="ytinfo-modal">
-    <div class="ytinfo-header">
-      <span class="ytinfo-title">&#9654; YouTube Upload Info</span>
-      <button class="ytinfo-close" id="ytInfoClose">&#10005;</button>
-    </div>
-    <div class="ytinfo-loading" id="ytInfoLoading">Loading metadata…</div>
-    <div class="ytinfo-body hidden" id="ytInfoBody">
-      <div class="ytinfo-hint">
-        Copy each field below and paste it when uploading on
-        <a href="https://studio.youtube.com" target="_blank">YouTube Studio</a>.
-      </div>
-      <div class="ytinfo-field">
-        <div class="ytinfo-field-head">
-          <span class="ytinfo-label">Title</span>
-          <button class="ytinfo-copy-btn" data-target="ytInfoTitle">Copy</button>
-        </div>
-        <div class="ytinfo-value ytinfo-single" id="ytInfoTitle"></div>
-      </div>
-      <div class="ytinfo-field">
-        <div class="ytinfo-field-head">
-          <span class="ytinfo-label">Description</span>
-          <button class="ytinfo-copy-btn" data-target="ytInfoDesc">Copy</button>
-        </div>
-        <textarea class="ytinfo-value ytinfo-textarea" id="ytInfoDesc" readonly></textarea>
-      </div>
-      <div class="ytinfo-field">
-        <div class="ytinfo-field-head">
-          <span class="ytinfo-label">Tags</span>
-          <button class="ytinfo-copy-btn" data-target="ytInfoTags">Copy</button>
-        </div>
-        <div class="ytinfo-value ytinfo-single" id="ytInfoTags"></div>
-      </div>
-      <div class="ytinfo-field">
-        <div class="ytinfo-field-head">
-          <span class="ytinfo-label">Video path</span>
-          <button class="ytinfo-copy-btn" data-target="ytInfoPath">Copy</button>
-        </div>
-        <div class="ytinfo-value ytinfo-single" id="ytInfoPath" style="font-size:.75rem;color:#888;word-break:break-all"></div>
-      </div>
-      <div class="ytinfo-actions">
-        <a class="ytinfo-open-btn" href="https://studio.youtube.com/channel/upload" target="_blank">
-          &#9654; Open YouTube Studio
-        </a>
-        <button class="ytinfo-dismiss" id="ytInfoDismiss">Close</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Mark Posted modal -->
-<div class="mp-overlay hidden" id="mpOverlay">
-  <div class="mp-modal">
-    <h3>&#9654; Mark as Posted</h3>
-    <label>YouTube URL (optional)</label>
-    <input type="text" id="mpUrl" placeholder="https://youtu.be/…">
-    <label>YouTube Video ID (optional)</label>
-    <input type="text" id="mpVideoId" placeholder="e.g. dQw4w9WgXcQ">
-    <div class="mp-actions">
-      <button class="btn-cancel-mp" id="mpCancel">Cancel</button>
-      <button class="btn-confirm" id="mpConfirm">&#10003; Mark Posted</button>
-    </div>
-  </div>
 </div>
 
 {% endblock %}
@@ -296,9 +187,8 @@ table.tl-table  { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
   /* ── State ──────────────────────────────────────────────────────────────── */
   let allRows     = [];
   let filters     = {};
-  let activeFilters = { category: '', frequency_label: '', video_status: '', youtube_status: '' };
+  let activeFilters = { category: '', frequency_label: '', video_status: '' };
   let searchQuery = '';
-  let mpTargetId  = null;
 
   /* ── Stats ──────────────────────────────────────────────────────────────── */
   function loadStats() {
@@ -308,8 +198,6 @@ table.tl-table  { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
         document.getElementById('statTotal').textContent     = d.total      ?? '—';
         document.getElementById('statGenerated').textContent = d.generated  ?? '—';
         document.getElementById('statNotGen').textContent    = d.not_generated ?? '—';
-        document.getElementById('statPosted').textContent    = d.posted     ?? '—';
-        document.getElementById('statNotPosted').textContent = d.not_posted ?? '—';
         document.getElementById('statCats').textContent      = d.categories ?? '—';
       });
   }
@@ -324,7 +212,6 @@ table.tl-table  { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
     if (activeFilters.category)        params.set('category',        activeFilters.category);
     if (activeFilters.frequency_label) params.set('frequency_label', activeFilters.frequency_label);
     if (activeFilters.video_status)    params.set('video_status',    activeFilters.video_status);
-    if (activeFilters.youtube_status)  params.set('youtube_status',  activeFilters.youtube_status);
     if (searchQuery)                   params.set('search',          searchQuery);
 
     fetch('/api/templates/list?' + params)
@@ -388,27 +275,12 @@ table.tl-table  { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
     return '<span class="status-dot sd-not_generated"></span><span style="color:#555">Not yet</span>';
   }
 
-  function ytStatus(row) {
-    if (row.youtube_status === 'posted')
-      return '<span class="status-dot sd-posted"></span><a href="' +
-             (row.youtube_url || '#') + '" target="_blank" style="color:#3b82f6">Posted</a>';
-    return '<span class="status-dot sd-not_posted"></span><span style="color:#555">Not posted</span>';
-  }
-
   function rowActions(row) {
     let btns = '';
     if (row.video_status === 'not_generated') {
       btns += `<button class="btn-tl btn-generate" data-action="generate" data-id="${row.id}">&#9654; Generate</button>`;
     } else {
       btns += `<button class="btn-tl btn-regen" data-action="regen" data-id="${row.id}">&#8635; Regen</button>`;
-    }
-    if (row.video_status === 'generated') {
-      if (row.youtube_status === 'not_posted') {
-        btns += `<button class="btn-tl btn-posted" data-action="mark-posted" data-id="${row.id}">&#10003; Mark Posted</button>`;
-      } else {
-        btns += `<button class="btn-tl btn-unpost" data-action="unpost" data-id="${row.id}">&#8855; Unpost</button>`;
-      }
-      btns += `<button class="btn-tl btn-ytinfo" data-action="ytinfo" data-id="${row.id}">&#9654; YT Info</button>`;
     }
     return btns;
   }
@@ -439,7 +311,6 @@ table.tl-table  { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
         <td class="td-title"><span class="tl-title-text" title="${esc(row.title)}">${esc(row.title)}</span></td>
         <td class="td-freq">${freqBadge(row.frequency_label)}</td>
         <td>${videoStatus(row)}</td>
-        <td>${ytStatus(row)}</td>
         <td class="td-actions">${rowActions(row)}</td>
       `;
       tbody.appendChild(tr);
@@ -469,20 +340,6 @@ table.tl-table  { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
           alert(`Queued for generation (job ${d.job_id}). Check the queue panel.`);
           setTimeout(() => { loadStats(); loadTemplates(); }, 500);
         });
-    }
-    else if (action === 'mark-posted') {
-      mpTargetId = id;
-      document.getElementById('mpUrl').value     = '';
-      document.getElementById('mpVideoId').value = '';
-      document.getElementById('mpOverlay').classList.remove('hidden');
-    }
-    else if (action === 'unpost') {
-      if (!confirm('Remove the "posted" status from this template?')) return;
-      fetch(`/api/templates/${id}/unmark-posted`, { method: 'POST' })
-        .then(() => { loadStats(); loadTemplates(); });
-    }
-    else if (action === 'ytinfo') {
-      openYtInfo(id);
     }
   }
 
@@ -523,7 +380,6 @@ table.tl-table  { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
   }
   wirePills('freqFilterPills',   'frequency_label');
   wirePills('videoFilterPills',  'video_status');
-  wirePills('ytFilterPills',     'youtube_status');
 
   /* ── Search ─────────────────────────────────────────────────────────────── */
   let searchTimer;
@@ -531,66 +387,6 @@ table.tl-table  { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
     clearTimeout(searchTimer);
     searchQuery = e.target.value.trim();
     searchTimer = setTimeout(loadTemplates, 350);
-  });
-
-  /* ── YouTube Info modal ─────────────────────────────────────────────────── */
-  function openYtInfo(id) {
-    const overlay = document.getElementById('ytInfoOverlay');
-    overlay.classList.remove('hidden');
-    document.getElementById('ytInfoLoading').style.display = 'block';
-    document.getElementById('ytInfoBody').classList.add('hidden');
-
-    fetch(`/api/templates/${id}/youtube-info`)
-      .then(r => r.json())
-      .then(d => {
-        if (d.error) { alert(d.error); overlay.classList.add('hidden'); return; }
-        document.getElementById('ytInfoTitle').textContent     = d.title;
-        document.getElementById('ytInfoDesc').value            = d.description;
-        document.getElementById('ytInfoTags').textContent      = d.tags;
-        document.getElementById('ytInfoPath').textContent      = d.video_path || '(no video yet)';
-        document.getElementById('ytInfoLoading').style.display = 'none';
-        document.getElementById('ytInfoBody').classList.remove('hidden');
-      });
-  }
-
-  document.getElementById('ytInfoClose').addEventListener('click', () =>
-    document.getElementById('ytInfoOverlay').classList.add('hidden'));
-  document.getElementById('ytInfoDismiss').addEventListener('click', () =>
-    document.getElementById('ytInfoOverlay').classList.add('hidden'));
-
-  // Copy buttons
-  document.querySelectorAll('.ytinfo-copy-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const el = document.getElementById(btn.dataset.target);
-      const text = el.tagName === 'TEXTAREA' ? el.value : el.textContent;
-      navigator.clipboard.writeText(text).then(() => {
-        const orig = btn.textContent;
-        btn.textContent = 'Copied!';
-        setTimeout(() => btn.textContent = orig, 1500);
-      });
-    });
-  });
-
-  /* ── Mark-posted modal ──────────────────────────────────────────────────── */
-  document.getElementById('mpCancel').addEventListener('click', () => {
-    document.getElementById('mpOverlay').classList.add('hidden');
-    mpTargetId = null;
-  });
-
-  document.getElementById('mpConfirm').addEventListener('click', () => {
-    if (!mpTargetId) return;
-    const url = document.getElementById('mpUrl').value.trim();
-    const vid = document.getElementById('mpVideoId').value.trim();
-    fetch(`/api/templates/${mpTargetId}/mark-posted`, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ youtube_url: url || null, youtube_video_id: vid || null }),
-    }).then(() => {
-      document.getElementById('mpOverlay').classList.add('hidden');
-      mpTargetId = null;
-      loadStats();
-      loadTemplates();
-    });
   });
 
   /* ── Init ───────────────────────────────────────────────────────────────── */

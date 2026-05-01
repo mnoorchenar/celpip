@@ -200,8 +200,6 @@ html, body { height: 100%; overflow: hidden; font-family: 'Segoe UI', Arial, san
 .btn-progress span { position: relative; z-index: 1; }
 .btn-video { background: #dcfce7; color: #16a34a; }
 .btn-video:hover { background: #bbf7d0; }
-.btn-youtube { background: #fef3c7; color: #b45309; }
-.btn-youtube:hover { background: #fde68a; }
 .btn-posted { background: #dcfce7; color: #16a34a; font-weight: 600; }
 .btn-reset { background: #fee2e2; color: #dc2626; }
 .btn-reset:hover { background: #fecaca; }
@@ -562,7 +560,6 @@ textarea.form-input { resize: vertical; min-height: 80px; }
           <div class="stat-chip"><span class="val" id="stat-total">0</span>&nbsp;Total</div>
           <div class="stat-chip"><span class="val" id="stat-answers">0</span>&nbsp;Answers</div>
           <div class="stat-chip"><span class="val" id="stat-videos">0</span>&nbsp;Videos</div>
-          <div class="stat-chip"><span class="val" id="stat-youtube">0</span>&nbsp;Posted</div>
           <div class="stat-chip highlight"><span class="val" id="stat-showing">0</span>&nbsp;Showing</div>
         </div>
         <button id="btn-font-size" onclick="openFontSizeModal()"
@@ -662,7 +659,6 @@ textarea.form-input { resize: vertical; min-height: 80px; }
       <div class="col-status">
         <button class="sf-btn" id="sf-ans" data-state="" onclick="cycleStatusFilter('ans')" title="Filter: Answer (click to cycle)">Answer</button>
         <button class="sf-btn" id="sf-vid" data-state="" onclick="cycleStatusFilter('vid')" title="Filter: Video (click to cycle)">Video</button>
-        <button class="sf-btn" id="sf-yt"  data-state="" onclick="cycleStatusFilter('yt')"  title="Filter: YouTube (click to cycle)">YouTube</button>
       </div>
       <div>Actions</div>
     </div>
@@ -725,61 +721,6 @@ textarea.form-input { resize: vertical; min-height: 80px; }
     </div>
     <div class="modal-footer">
       <button class="action-btn btn-detail" onclick="closeModal('modal-detail')">Close</button>
-    </div>
-  </div>
-</div>
-
-<!-- ── YouTube info modal ── -->
-<div class="modal-overlay" id="modal-youtube">
-  <div class="modal modal-lg">
-    <div class="modal-header">
-      <div>
-        <h2>YouTube Info</h2>
-        <p id="yt-modal-meta"></p>
-      </div>
-      <button class="modal-close" onclick="closeModal('modal-youtube')">✕</button>
-    </div>
-    <div class="modal-body">
-      <div id="yt-modal-loading" style="text-align:center;padding:30px;color:#64748b;">Loading…</div>
-      <div id="yt-modal-content" style="display:none">
-        <div class="yt-field">
-          <div class="yt-field-header">
-            <span class="yt-field-label">Title</span>
-            <button class="btn-copy" onclick="copyField('yt-title-text', this)">Copy</button>
-          </div>
-          <div class="yt-text" id="yt-title-text"></div>
-        </div>
-        <div class="yt-field">
-          <div class="yt-field-header">
-            <span class="yt-field-label">Description</span>
-            <button class="btn-copy" onclick="copyField('yt-desc-text', this)">Copy</button>
-          </div>
-          <div class="yt-text tall" id="yt-desc-text"></div>
-        </div>
-        <div class="yt-field">
-          <div class="yt-field-header">
-            <span class="yt-field-label">Tags</span>
-            <button class="btn-copy" onclick="copyField('yt-tags-text', this)">Copy</button>
-          </div>
-          <div class="yt-text" id="yt-tags-text"></div>
-        </div>
-        <div id="yt-already-posted" style="display:none;margin-top:14px;padding:10px 14px;background:#dcfce7;border-radius:8px;border:1px solid #bbf7d0;">
-          <div style="font-size:13px;font-weight:600;color:#16a34a;margin-bottom:4px;">✓ Already Posted</div>
-          <a id="yt-posted-link" href="#" target="_blank" style="font-size:13px;color:#16a34a;"></a>
-          <button class="form-btn form-btn-danger" style="margin-left:12px;font-size:11px;padding:3px 8px;" onclick="unmarkPosted()">Unmark</button>
-        </div>
-        <div class="mark-posted-form" id="yt-mark-form">
-          <h4>Mark as Posted</h4>
-          <div class="form-row">
-            <input type="text" id="yt-url-input" placeholder="YouTube URL (e.g. https://youtu.be/abc123)">
-            <input type="text" id="yt-vid-input" placeholder="Video ID (optional)">
-            <button class="form-btn form-btn-primary" onclick="markPosted()">Mark Posted</button>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="action-btn btn-detail" onclick="closeModal('modal-youtube')">Close</button>
     </div>
   </div>
 </div>
@@ -1111,7 +1052,6 @@ let activeCategory   = '';
 let activeFreqs      = new Set();
 let activeAnswer     = '';
 let activeVideo      = '';
-let activeYoutube    = '';
 let activePart       = '';
 let activeBand       = '';
 let searchQuery      = '';
@@ -1120,7 +1060,6 @@ let activeJobs       = {};   // templateId -> { jobId, polling interval }
 let queueBodyOpen    = true;
 let queuePanelOpen   = false;
 let viewingSelection = false;
-let ytModalRecord    = null;   // current template record id shown in yt modal
 let cvJobInterval    = null;
 let cvDoneJobId      = null;
 
@@ -1257,8 +1196,6 @@ function applyFilters() {
     if (activeAnswer === 'no'  && t.answer)  return false;
     if (activeVideo === 'generated'     && t.video_status !== 'generated')     return false;
     if (activeVideo === 'not_generated' && t.video_status !== 'not_generated') return false;
-    if (activeYoutube === 'posted'     && t.youtube_status !== 'posted')     return false;
-    if (activeYoutube === 'not_posted' && t.youtube_status !== 'not_posted') return false;
     if (q) {
       const hay = (t.title + ' ' + t.question).toLowerCase();
       if (!hay.includes(q)) return false;
@@ -1281,8 +1218,6 @@ function updateFilterCounts() {
     if (activeAnswer === 'no'  && t.answer)  return false;
     if (activeVideo === 'generated'     && t.video_status !== 'generated')     return false;
     if (activeVideo === 'not_generated' && t.video_status !== 'not_generated') return false;
-    if (activeYoutube === 'posted'     && t.youtube_status !== 'posted')     return false;
-    if (activeYoutube === 'not_posted' && t.youtube_status !== 'not_posted') return false;
     if (searchQuery) {
       const hay = (t.title + ' ' + t.question).toLowerCase();
       if (!hay.includes(searchQuery.toLowerCase())) return false;
@@ -1330,11 +1265,9 @@ function updateStats() {
   const total     = allTemplates.length;
   const answers   = allTemplates.filter(t => t.answer).length;
   const videos    = allTemplates.filter(t => t.video_status === 'generated').length;
-  const youtube   = allTemplates.filter(t => t.youtube_status === 'posted').length;
   document.getElementById('stat-total').textContent   = total;
   document.getElementById('stat-answers').textContent = answers;
   document.getElementById('stat-videos').textContent  = videos;
-  document.getElementById('stat-youtube').textContent = youtube;
 }
 
 function updateShowingCount() {
@@ -1485,13 +1418,6 @@ function setVideo(val) {
   activeVideo = val;
   const btn = document.getElementById('sf-vid');
   if (btn) btn.dataset.state = val === 'generated' ? 'yes' : val === 'not_generated' ? 'no' : '';
-  applyFilters();
-}
-
-function setYoutube(val) {
-  activeYoutube = val;
-  const btn = document.getElementById('sf-yt');
-  if (btn) btn.dataset.state = val === 'posted' ? 'yes' : val === 'not_posted' ? 'no' : '';
   applyFilters();
 }
 
@@ -1654,7 +1580,6 @@ function updateRow(rowEl, t) {
 function fillRow(main, detail, t) {
   const hasAnswer = !!(t.answer && t.answer.trim());
   const isGenerated = t.video_status === 'generated';
-  const isPosted    = t.youtube_status === 'posted';
 
   // Check if this row has an active job
   const activeJob = activeJobs[t.id];
@@ -1683,7 +1608,6 @@ function fillRow(main, detail, t) {
     <div class="row-status">
       <span class="status-icon ${hasAnswer ? 's-yes' : 's-no'}" title="${hasAnswer ? 'Has Answer' : 'No Answer'}">Answer</span>
       <span class="status-icon ${isGenerated ? 's-vid-yes' : 's-no'}" title="${isGenerated ? 'Video Generated' : 'No Video'}">Video</span>
-      <span class="status-icon ${isPosted ? 's-yes' : 's-no'}" title="${isPosted ? 'Posted to YouTube' : 'Not Posted'}">YouTube</span>
     </div>
     <div class="row-actions" id="actions-${t.id}">
       ${buildActions(t, activeJob)}
@@ -1707,7 +1631,6 @@ function fillRow(main, detail, t) {
 function buildActions(t, activeJob) {
   const hasAnswer   = !!(t.answer && t.answer.trim());
   const isGenerated = t.video_status === 'generated';
-  const isPosted    = t.youtube_status === 'posted';
 
   let btns = '';
 
@@ -1724,11 +1647,6 @@ function buildActions(t, activeJob) {
   } else {
     btns += `<button class="action-btn btn-open-folder" onclick="event.stopPropagation();openTemplateFolder(${t.id})" title="Open folder">📁</button>`;
     btns += `<button class="action-btn btn-open-video"  onclick="event.stopPropagation();openTemplateVideo(${t.id})" title="Play video">▶</button>`;
-    if (!isPosted) {
-      btns += `<button class="action-btn btn-youtube" onclick="event.stopPropagation();openYouTubeModal(${t.id})" title="YouTube info">↑</button>`;
-    } else {
-      btns += `<span class="action-btn btn-posted" title="Posted to YouTube">✓</span>`;
-    }
   }
 
   if (hasAnswer) {
@@ -1952,13 +1870,11 @@ function updateRowActions(templateId) {
   if (main) {
     const hasAnswer   = !!(t.answer && t.answer.trim());
     const isGenerated = t.video_status === 'generated';
-    const isPosted    = t.youtube_status === 'posted';
     const statusDiv = main.querySelector('.row-status');
     if (statusDiv) {
       statusDiv.innerHTML = `
         <span class="status-icon ${hasAnswer ? 's-yes' : 's-no'}" title="${hasAnswer ? 'Has Answer' : 'No Answer'}">Answer</span>
         <span class="status-icon ${isGenerated ? 's-vid-yes' : 's-no'}" title="${isGenerated ? 'Video Generated' : 'No Video'}">Video</span>
-        <span class="status-icon ${isPosted ? 's-yes' : 's-no'}" title="${isPosted ? 'Posted to YouTube' : 'Not Posted'}">YouTube</span>
       `;
     }
   }
@@ -2061,73 +1977,6 @@ function openDetailModal(templateId) {
   }
 
   openModal('modal-detail');
-}
-
-// ── YouTube modal ─────────────────────────────────────────────────────────────
-async function openYouTubeModal(templateId) {
-  ytModalRecord = templateId;
-  const t = allTemplates.find(x => x.id === templateId);
-  document.getElementById('yt-modal-meta').textContent = t ? `${t.category} · ${t.template_id || ''}` : '';
-  document.getElementById('yt-modal-loading').style.display = '';
-  document.getElementById('yt-modal-content').style.display = 'none';
-
-  openModal('modal-youtube');
-
-  try {
-    const data = await apiFetch(`/api/templates/${templateId}/youtube-info`);
-    document.getElementById('yt-title-text').textContent = data.title || '';
-    document.getElementById('yt-desc-text').textContent  = data.description || '';
-    document.getElementById('yt-tags-text').textContent  = data.tags || '';
-
-    const alreadyPosted = document.getElementById('yt-already-posted');
-    const markForm      = document.getElementById('yt-mark-form');
-    if (data.youtube_url) {
-      alreadyPosted.style.display = '';
-      const link = document.getElementById('yt-posted-link');
-      link.href = data.youtube_url;
-      link.textContent = data.youtube_url;
-      markForm.style.display = 'none';
-    } else {
-      alreadyPosted.style.display = 'none';
-      markForm.style.display = '';
-    }
-
-    document.getElementById('yt-modal-loading').style.display = 'none';
-    document.getElementById('yt-modal-content').style.display = '';
-  } catch(e) {
-    document.getElementById('yt-modal-loading').textContent = 'Error loading YouTube info.';
-  }
-}
-
-async function markPosted() {
-  if (!ytModalRecord) return;
-  const url = document.getElementById('yt-url-input').value.trim();
-  const vid = document.getElementById('yt-vid-input').value.trim();
-  if (!url) { showToast('Please enter a YouTube URL.', 'error'); return; }
-  try {
-    await apiFetch(`/api/templates/${ytModalRecord}/mark-posted`, {
-      method: 'POST',
-      body: JSON.stringify({ youtube_url: url, youtube_video_id: vid || null })
-    });
-    await refreshTemplate(ytModalRecord);
-    showToast('Marked as posted!', 'success');
-    closeModal('modal-youtube');
-  } catch(e) {
-    showToast('Error marking as posted.', 'error');
-  }
-}
-
-async function unmarkPosted() {
-  if (!ytModalRecord) return;
-  if (!confirm('Remove posted status?')) return;
-  try {
-    await apiFetch(`/api/templates/${ytModalRecord}/unmark-posted`, { method: 'POST' });
-    await refreshTemplate(ytModalRecord);
-    showToast('Unposted.', 'info');
-    closeModal('modal-youtube');
-  } catch(e) {
-    showToast('Error.', 'error');
-  }
 }
 
 async function copyField(elementId, btn) {

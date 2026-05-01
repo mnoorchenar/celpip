@@ -31,7 +31,6 @@ from modules import output_dirs
 from modules import database as db
 from modules import kokoro_tts, style_gen, video_builder
 from modules import frame_renderer as fr
-from modules import youtube_upload as yt_mod
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
@@ -1119,155 +1118,6 @@ def api_patterns_frame():
     return send_file(buf, mimetype='image/jpeg')
 
 
-# ── YouTube OAuth & Upload ─────────────────────────────────────────────────────
-
-yt_uploads = {}   # upload_id -> {done, error, progress, video_id, youtube_url}
-
-
-@app.route('/api/youtube-meta/raw', methods=['POST'])
-def api_youtube_meta_raw():
-    """Generate YouTube metadata from raw session data (no DB record needed)."""
-    import json as _json
-    data = request.get_json() or {}
-    task_num  = _int(data.get('task_num', 1))
-    task_info = TASK_DEFAULTS.get(task_num, TASK_DEFAULTS[1])
-    part_name = task_info['name']
-    band      = data.get('band', '7_8')
-    category  = data.get('category', '')
-    title     = data.get('title', '') or category
-    question  = data.get('question', '')
-    answer    = data.get('answer', '')
-    vocab     = data.get('vocab', [])
-
-    yt_title = yt_mod._make_title(task_num, part_name, band, category, title)
-    yt_desc  = yt_mod._make_description(task_num, part_name, band, category,
-                                        title, question, answer, vocab)
-    yt_tags  = yt_mod._make_tags(task_num, band)
-    return jsonify({'title': yt_title, 'description': yt_desc, 'tags': ', '.join(yt_tags)})
-
-
-@app.route('/youtube/auth')
-def youtube_auth():
-    """Redirect user to Google OAuth consent screen."""
-    if not yt_mod.client_secrets_present():
-        return (
-            '<h2>Setup required</h2>'
-            '<p>Place your Google OAuth credentials at '
-            '<code>data/client_secrets.json</code>.</p>'
-            '<p>Steps:<br>'
-            '1. Open <a href="https://console.cloud.google.com/" target="_blank">'
-            'Google Cloud Console</a><br>'
-            '2. Create a project &rarr; Enable <strong>YouTube Data API v3</strong><br>'
-            '3. APIs &amp; Services &rarr; Credentials &rarr; Create OAuth 2.0 Client ID<br>'
-            '&nbsp;&nbsp;&nbsp;Type: <strong>Web application</strong><br>'
-            '&nbsp;&nbsp;&nbsp;Redirect URI: <code>http://127.0.0.1:5009/youtube/callback</code><br>'
-            '4. Download JSON &rarr; rename to <code>client_secrets.json</code> &rarr; '
-            'place in the <code>data/</code> folder<br>'
-            '5. Restart the server, then try again.</p>'
-        ), 400
-    redirect_uri = url_for('youtube_callback', _external=True)
-    _state, auth_url = yt_mod.get_auth_url(redirect_uri)
-    return redirect(auth_url)
-
-
-@app.route('/youtube/callback')
-def youtube_callback():
-    """Google redirects here after the user grants permission."""
-    code  = request.args.get('code')
-    state = request.args.get('state')
-    error = request.args.get('error')
-    if error:
-        return f'<script>window.close();</script><p>Auth denied: {error}</p>', 400
-    if not code or not state:
-        return 'Missing OAuth parameters', 400
-    try:
-        yt_mod.handle_callback(state, code)
-    except Exception as e:
-        return f'<script>window.close();</script><p>OAuth error: {e}</p>', 400
-    # Notify opener (popup flow) then close
-    return (
-        '<html><body>'
-        '<p>Authenticated! You can close this window.</p>'
-        '<script>'
-        'if(window.opener){window.opener.postMessage("yt_authed","*");}'
-        'setTimeout(function(){window.close();},1500);'
-        '</script>'
-        '</body></html>'
-    )
-
-
-@app.route('/api/youtube/status')
-def api_youtube_status():
-    return jsonify({
-        'authenticated':   yt_mod.is_authenticated(),
-        'secrets_present': yt_mod.client_secrets_present(),
-    })
-
-
-@app.route('/api/youtube/upload/<job_id>', methods=['POST'])
-def api_youtube_upload_job(job_id):
-    """Start YouTube upload for a completed generation job."""
-    j = jobs.get(job_id)
-    if not j or not j.get('done') or j.get('error'):
-        return jsonify({'error': 'Video not ready'}), 400
-    video_path = j.get('output_path', '')
-    if not video_path or not os.path.exists(video_path):
-        return jsonify({'error': 'Video file not found on disk'}), 404
-
-    jd        = j['_job_data']
-    task_num  = jd['task_num']
-    task_info = TASK_DEFAULTS.get(task_num, TASK_DEFAULTS[1])
-    part_name = task_info['name']
-    thumb_path = os.path.join(os.path.dirname(video_path), 'thumbnail.jpg')
-
-    return _start_yt_upload(
-        video_path, thumb_path, task_num, part_name,
-        jd['band'], jd['category'], jd['title'],
-        jd['question'], jd['answer'], jd['vocab'],
-    )
-
-
-def _start_yt_upload(video_path, thumb_path, task_num, part_name,
-                      band, category, title, question, answer, vocab):
-    if not yt_mod.is_authenticated():
-        return jsonify({'error': 'not_authenticated'}), 401
-
-    upload_id = uuid.uuid4().hex
-    yt_uploads[upload_id] = {
-        'done': False, 'error': None, 'progress': 0,
-        'video_id': None, 'youtube_url': None,
-    }
-
-    def _run():
-        def cb(pct):
-            yt_uploads[upload_id]['progress'] = pct
-
-        try:
-            video_id = yt_mod.upload_video(
-                video_path, thumb_path, task_num, part_name,
-                band, category, title, question, answer, vocab,
-                progress_cb=cb,
-            )
-            youtube_url = f'https://youtu.be/{video_id}'
-            yt_uploads[upload_id].update(
-                done=True, video_id=video_id, youtube_url=youtube_url, progress=100)
-        except Exception as e:
-            print(f'[YouTube] Upload error: {e}\n{traceback.format_exc()}',
-                  file=sys.stderr)
-            yt_uploads[upload_id].update(done=True, error=str(e))
-
-    threading.Thread(target=_run, daemon=True, name=f'YTUpload-{upload_id}').start()
-    return jsonify({'upload_id': upload_id})
-
-
-@app.route('/api/youtube/upload-status/<upload_id>')
-def api_youtube_upload_status(upload_id):
-    u = yt_uploads.get(upload_id)
-    if not u:
-        return jsonify({'error': 'Upload not found'}), 404
-    return jsonify(u)
-
-
 # ── Template Library ───────────────────────────────────────────────────────────
 
 @app.route('/templates')
@@ -1280,10 +1130,8 @@ def api_templates_list():
     category        = request.args.get('category')        or None
     frequency_label = request.args.get('frequency_label') or None
     video_status    = request.args.get('video_status')    or None
-    youtube_status  = request.args.get('youtube_status')  or None
     search          = request.args.get('search')          or None
-    rows    = db.get_templates(category, frequency_label, video_status,
-                               youtube_status, search)
+    rows    = db.get_templates(category, frequency_label, video_status, search)
     filters = db.get_template_filter_options()
     return jsonify({'templates': rows, 'filters': filters})
 
@@ -1452,54 +1300,6 @@ def api_template_reset(record_id):
             except Exception: pass
     db.reset_template(record_id)
     return jsonify({'ok': True})
-
-
-@app.route('/api/templates/<int:record_id>/mark-posted', methods=['POST'])
-def api_template_mark_posted(record_id):
-    data = request.get_json() or {}
-    db.mark_template_posted(record_id,
-                            youtube_url=data.get('youtube_url'),
-                            youtube_video_id=data.get('youtube_video_id'))
-    return jsonify({'ok': True})
-
-
-@app.route('/api/templates/<int:record_id>/unmark-posted', methods=['POST'])
-def api_template_unmark_posted(record_id):
-    db.unmark_template_posted(record_id)
-    return jsonify({'ok': True})
-
-
-@app.route('/api/templates/<int:record_id>/youtube-info')
-def api_template_youtube_info(record_id):
-    import json as _json
-    row = db.get_template_by_id(record_id)
-    if not row:
-        return jsonify({'error': 'Template not found'}), 404
-
-    task_num  = row['part']
-    task_info = TASK_DEFAULTS.get(task_num, TASK_DEFAULTS[1])
-    part_name = task_info['name']
-    vocab     = row.get('vocabulary', [])
-    if isinstance(vocab, str):
-        try:    vocab = _json.loads(vocab)
-        except: vocab = []
-
-    yt_title = yt_mod._make_title(task_num, part_name, row['band'],
-                                  row['category'], row['title'])
-    yt_desc  = yt_mod._make_description(task_num, part_name, row['band'],
-                                        row['category'], row['title'],
-                                        row['question'], row['answer'], vocab)
-    yt_tags  = yt_mod._make_tags(task_num, row['band'])
-
-    return jsonify({
-        'title':            yt_title,
-        'description':      yt_desc,
-        'tags':             ', '.join(yt_tags),
-        'template_id':      row.get('template_id'),
-        'video_path':       row.get('video_path') or '',
-        'youtube_url':      row.get('youtube_url') or '',
-        'youtube_video_id': row.get('youtube_video_id') or '',
-    })
 
 
 # ── Margin Tuner ───────────────────────────────────────────────────────────────
